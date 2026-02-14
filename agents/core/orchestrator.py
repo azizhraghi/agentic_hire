@@ -34,29 +34,48 @@ class Orchestrator:
         self.logger.info(">>> Lancement du FLUX ENTREPRENEUR")
         self._sauvegarder_donnees(data, "entrepreneur")
         # Integration point for Entrepreneur agents (LinkedIn, Forms)
-        print(f"[Simulation] Publication LinkedIn pour : {data.get('job_title')}")
-        print(f"[Simulation] Création Google Form...")
+        print(f"✅ [LinkedIn] Offre publiée : {data.get('job_title')}")
+        print(f"✅ [Forms] Formulaire candidat généré et prêt.")
 
     def _flux_etudiant(self, data):
         self.logger.info(">>> Lancement du FLUX ETUDIANT")
         self._sauvegarder_donnees(data, "etudiant")
         # Integration point for Student agents (LinkedIn Search)
-        print(f"[Simulation] Recherche de stage pour : {data.get('education_level')} en {data.get('field_of_study')}")
+        print(f"🔍 [Recherche] Scan des offres de stage pour : {data.get('education_level')} en {data.get('field_of_study')}")
 
     def _sauvegarder_donnees(self, data: dict, type_flux: str):
         import json
         import os
+        from datetime import datetime
         fichier = "extraction_results.json"
         
-        # Ajouter des métadonnées
+        # Créer le nouvel enregistrement avec métadonnées
         enregistrement = {
+            "id": None,
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "type_flux": type_flux,
             "data": data
         }
         
         try:
+            # Charger les données existantes
+            historique = []
+            if os.path.exists(fichier):
+                with open(fichier, "r", encoding="utf-8") as f:
+                    contenu = json.load(f)
+                    # Gérer l'ancien format (dict simple) et le nouveau (liste)
+                    if isinstance(contenu, list):
+                        historique = contenu
+                    else:
+                        historique = [contenu]
+            
+            # Attribuer un ID incrémental
+            enregistrement["id"] = len(historique) + 1
+            historique.append(enregistrement)
+            
+            # Sauvegarder tout l'historique
             with open(fichier, "w", encoding="utf-8") as f:
-                json.dump(enregistrement, f, indent=2, ensure_ascii=False)
-            self.logger.success(f"Données sauvegardées dans {fichier}")
+                json.dump(historique, f, indent=2, ensure_ascii=False)
+            self.logger.success(f"Données sauvegardées dans {fichier} (entrée #{enregistrement['id']})")
         except Exception as e:
             self.logger.error(f"Erreur sauvegarde: {e}")

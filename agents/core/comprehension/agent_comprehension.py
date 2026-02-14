@@ -91,69 +91,7 @@ class AgentComprehension:
             return int(texte)
         return nombres_fr.get(texte, 0)
 
-    def _extraire_recrutement(self, texte: str) -> dict:
-        """
-        Extraction pour recrutement
-        """
-        texte_lower = texte.lower()
-        
-        donnees = {
-            "job_title": "Non spécifié",
-            "number_needed": 1,
-            "skills_required": [],
-            "experience_level": "Non spécifié",
-            "contract_type": "Non spécifié",
-            "location": "Non spécifié",
-            "company_name": "Non spécifié",
-            "duration": "Non spécifié",
-            "additional_info": texte[:200]
-        }
-        
-        # --- Extraire le nombre et le titre du poste ---
-        nombres_pattern = r'(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)'
-        
-        titres_base = [
-            'ingénieur[s]?', 'développeur[s]?', 'data scientist[s]?',
-            'data engineer[s]?', 'data analyst[s]?', 'chef[s]? de projet',
-            'designer[s]?', 'devops', 'technicien[s]?', 'consultant[s]?',
-            'manager[s]?', 'architecte[s]?', 'analyste[s]?',
-            'administrateur[s]?', 'personne[s]?', 'profil[s]?', 'candidat[s]?'
-        ]
-        pattern_titres = '|'.join(titres_base)
-        
-        # Chercher: nombre + titre + qualificatif optionnel
-        match = re.search(
-            r'\b' + nombres_pattern + r'\s+(' + pattern_titres + r')(?:\s+(\w+))?',
-            texte_lower
-        )
-        if match:
-            donnees["number_needed"] = self._convertir_nombre(match.group(1))
-            titre = match.group(2).strip()
-            qualificatif = match.group(3)
-            mots_liaison = {'pour', 'avec', 'dans', 'sur', 'en', 'et', 'ou', 'à', 'de', 'du', 'des', 'le', 'la', 'les', 'qui'}
-            if qualificatif and qualificatif not in mots_liaison:
-                titre = f"{titre} {qualificatif}"
-            donnees["job_title"] = titre.capitalize()
-        else:
-            match_titre = re.search(r'\b(' + pattern_titres + r')(?:\s+(\w+))?', texte_lower)
-            if match_titre:
-                titre = match_titre.group(1).strip()
-                qualificatif = match_titre.group(2)
-                mots_liaison = {'pour', 'avec', 'dans', 'sur', 'en', 'et', 'ou', 'à', 'de', 'du', 'des', 'le', 'la', 'les', 'qui'}
-                if qualificatif and qualificatif not in mots_liaison:
-                    titre = f"{titre} {qualificatif}"
-                donnees["job_title"] = titre.capitalize()
-        
-        # --- Extraire le nom de l'entreprise ---
-        patterns_entreprise = [
-            r"(?:[Ll]'entreprise|[Ll]a société|[Ll]'agence|[Ll]a startup|[Ll]a boîte|[Cc]hez|l'entrerpise)\s+([A-ZÀ-Ü0-9][\w\-\.]+(?:\s+[A-ZÀ-Ü0-9][\w\-\.]+)*)",
-            r"(?:[Ee]ntreprise|[Ss]ociété|[Aa]gence|[Ss]tartup)\s+([A-ZÀ-Ü0-9][\w\-\.]+(?:\s+[A-ZÀ-Ü0-9][\w\-\.]+)*)",
-        ]
-        for pattern in patterns_entreprise:
-            match_ent = re.search(pattern, texte)
-            if match_ent:
-                donnees["company_name"] = match_ent.group(1).strip()
-                break
+
         
     def _extraire_competences(self, texte_lower: str, donnees: dict) -> None:
         """Extrait les compétences techniques (partagé)"""
@@ -207,21 +145,25 @@ class AgentComprehension:
             'paris', 'lyon', 'marseille', 'bordeaux', 'lille', 'toulouse', 'nice',
             'nantes', 'strasbourg', 'montpellier', 'rennes', 'grenoble',
             'tunis', 'sousse', 'sfax', 'casablanca', 'rabat', 'alger', 'oran',
-            'remote', 'télétravail', 'borj cedria'
+            'remote', 'télétravail', 'borj cedria', 'borjcedria', 'ariana',
+            'nabeul', 'bizerte', 'monastir', 'kairouan', 'gabès', 'médenine'
         ]
         lieu_trouve = False
         for ville in villes_connues:
             if ville in texte_lower:
-                donnees["location"] = ville.title()
+                donnees["location"] = ville.replace('borjcedria', 'Borj Cedria').title()
                 lieu_trouve = True
                 break
         if not lieu_trouve:
-            match_lieu = re.search(r'\b(?:à|en)\s+([A-ZÀ-Üa-zà-ü][\w\-\.]+(?:\s+[A-ZÀ-Üa-zà-ü][\w\-\.]+)*)', texte)
+            # Chercher "à/en + NomPropre" mais filtrer les faux positifs
+            match_lieu = re.search(r'\b(?:cit[ée]e?|situ[ée]e?|bas[ée]e?|localis[ée]e?)?\s*(?:à|en)\s+([A-ZÀ-Üa-zà-ü][\w\-\.]+(?:\s+[A-ZÀ-Üa-zà-ü][\w\-\.]+)*)', texte)
             if match_lieu:
                 candidat = match_lieu.group(1).strip()
                 stopwords = {
                     'le', 'la', 'un', 'une', 'des', 'mon', 'ma', 'ce', 'cette', 'notre', 'votre', 'leur', 'recherche',
-                    'technologies', 'troisieme', 'cycle', 'ingénieur', 'développement', 'domaine'
+                    'technologies', 'troisieme', 'cycle', 'ingénieur', 'ingenieur', 'développement', 'domaine',
+                    'ia', 'qui', 'moin', 'moins', 'plus', 'contrat', 'experience', 'expérience',
+                    'informatique', 'mecanique', 'electronique', 'IA'
                 }
                 mots_candidat = set(candidat.lower().split())
                 if not mots_candidat.intersection(stopwords):
@@ -231,10 +173,14 @@ class AgentComprehension:
         """Extrait la durée (partagé)"""
         match_duree = re.search(r'(?:dur[ée]e\s+(?:de\s+)?(?:du\s+projet\s+est\s+)?|pour\s+)(\d+|un|une|deux|trois|quatre|cinq|six)\s*(ans?|mois|semaines?)', texte_lower)
         
+        # Fallback: capturer aussi les formats collés comme "6ans", "6mois"
+        if not match_duree:
+            match_duree = re.search(r'(?:dur[ée]e|de|pour)\s+(?:de\s+)?(\d+)(ans?|mois|semaines?)', texte_lower)
+        
         est_experience = False
         if match_duree:
             start, end = match_duree.span()
-            if "d'expérience" in texte_lower[end:end+15]:
+            if "d'exp" in texte_lower[end:end+15] or "d\'exp" in texte_lower[end:end+15]:
                 est_experience = True
 
         if match_duree and not est_experience:
@@ -257,13 +203,14 @@ class AgentComprehension:
             "location": "Non spécifié",
             "company_name": "Non spécifié",
             "duration": "Non spécifié",
+            "salary": "Non spécifié",
             "additional_info": texte[:200]
         }
         
         # --- Extraire le nombre et le titre du poste ---
         nombres_pattern = r'(\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)'
         titres_base = [
-            'ingénieur[s]?', 'développeur[s]?', 'data scientist[s]?',
+            'ing[ée]nieur[s]?', 'd[ée]veloppeur[s]?', 'data scientist[s]?',
             'data engineer[s]?', 'data analyst[s]?', 'chef[s]? de projet',
             'designer[s]?', 'devops', 'technicien[s]?', 'consultant[s]?',
             'manager[s]?', 'architecte[s]?', 'analyste[s]?',
@@ -271,22 +218,42 @@ class AgentComprehension:
         ]
         pattern_titres = '|'.join(titres_base)
         
+        # Pattern: nombre + titre (ex: "deux ingénieurs")
         match = re.search(
-            r'\b' + nombres_pattern + r'\s+(' + pattern_titres + r')(?:\s+(\w+))?',
+            r'\b' + nombres_pattern + r'\s+(' + pattern_titres + r')(?:\s+(?:en|de)\s+([\w\s]+?))?(?:\s+(?:qui|pour|avec|dans|sur|et|ou|à|,|\.))',
             texte_lower
         )
+        if not match:
+            match = re.search(
+                r'\b' + nombres_pattern + r'\s+(' + pattern_titres + r')(?:\s+(\w+))?',
+                texte_lower
+            )
+        
         if match:
             donnees["number_needed"] = self._convertir_nombre(match.group(1))
             titre = match.group(2).strip()
             qualificatif = match.group(3)
-            if qualificatif and qualificatif not in {'pour', 'avec', 'dans', 'sur', 'en', 'et', 'ou', 'à', 'de', 'du', 'des', 'le', 'la', 'les', 'qui'}:
-                titre = f"{titre} {qualificatif}"
-            donnees["job_title"] = titre.capitalize()
+            if qualificatif:
+                qualificatif = qualificatif.strip()
+                mots_exclus = {'pour', 'avec', 'dans', 'sur', 'et', 'ou', 'à', 'du', 'des', 'le', 'la', 'les', 'qui'}
+                if qualificatif not in mots_exclus:
+                    titre = f"{titre} en {qualificatif}" if 'en' not in titre else f"{titre} {qualificatif}"
+            donnees["job_title"] = titre.strip().capitalize()
         else:
-            match_titre = re.search(r'\b(' + pattern_titres + r')(?:\s+(\w+))?', texte_lower)
+            # Fallback: "d'un ingénieur en IA", "un ingénieur"
+            match_titre = re.search(r"(?:d[''']\s*)?\b(?:un|une)\s+(" + pattern_titres + r")(?:\s+(?:en|de)\s+([\w\s]+?))?(?:\s+(?:qui|pour|avec|dans|sur|et|ou|à|,|\.))", texte_lower)
+            if not match_titre:
+                match_titre = re.search(r"(?:d[''']\s*)?\b(?:un|une)\s+(" + pattern_titres + r")(?:\s+(\w+))?", texte_lower)
             if match_titre:
                 titre = match_titre.group(1).strip()
-                donnees["job_title"] = titre.capitalize()
+                qualificatif = match_titre.group(2)
+                if qualificatif:
+                    qualificatif = qualificatif.strip()
+                    mots_exclus = {'pour', 'avec', 'dans', 'sur', 'et', 'ou', 'à', 'du', 'des', 'le', 'la', 'les', 'qui'}
+                    if qualificatif not in mots_exclus:
+                        titre = f"{titre} en {qualificatif}"
+                donnees["job_title"] = titre.strip().capitalize()
+                donnees["number_needed"] = 1
         
         # --- Extraire l'entreprise ---
         patterns_entreprise = [
@@ -304,11 +271,16 @@ class AgentComprehension:
         self._extraire_lieu(texte, texte_lower, donnees)
         self._extraire_duree(texte_lower, donnees)
         
-        # --- Extraire le niveau d'expérience ---
-        match_exp = re.search(r"(\d+|un|une|deux|trois|quatre|cinq)\s*(ans?|mois)\s+d.exp[ée]rience", texte_lower)
+        # --- Extraire le niveau d'expérience (supporte "3ans" collé ou "3 ans") ---
+        match_exp = re.search(r"(\d+|un|une|deux|trois|quatre|cinq)\s*(ans?|mois)\s*d.exp[ée]rience", texte_lower)
         if match_exp:
             nb = self._convertir_nombre(match_exp.group(1))
             donnees["experience_level"] = f"{nb} {match_exp.group(2)} d'expérience"
+        
+        # --- Extraire le salaire ---
+        match_salaire = re.search(r'(\d+[\s.]?\d*)\s*(?:dt|tnd|€|eur(?:os?)?|\$|dinars?)', texte_lower)
+        if match_salaire:
+            donnees["salary"] = match_salaire.group(0).strip().upper()
         
         # --- Extraire le contrat ---
         match_contrat = re.search(r'\b(?:contrat[s]?\s+(?:de\s+(?:type\s+)?)?)?(?:en\s+)?(cdi|cdd|freelance|stage|alternance|intérim)\b', texte_lower)

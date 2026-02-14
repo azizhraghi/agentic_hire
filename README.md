@@ -73,4 +73,4 @@ python main.py
 Suivez les instructions à l'écran pour interagir par texte ou audio.
 
 ## 📝 Auteurs
-Projet réalisé par Fares et l'équipe pour le Hackathon.
+Projet réalisé par l'équipe **QuantumForce** pour le Hackathon.
