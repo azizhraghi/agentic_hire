@@ -20,7 +20,7 @@ class HuggingFaceClient:
         
         # URLs des modèles
         self.MODELS = {
-            "mistral": "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",  # Version 0.2 (stable)
+            "mistral": "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
             # Ou alternativement :
             # "mistral": "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",  # Alternative
             "llama": "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct",

@@ -14,7 +14,7 @@ class AgentLinkedInSearch:
         
         self.logger.info(f"Scan LinkedIn pour {niveau} en {domaine}...")
         
-        # Simulation de scraping
+        # Mock implementation
         offres = [
             {"titre": f"Stage PFE {domaine}", "entreprise": "TechCorp", "lieu": "Paris"},
             {"titre": f"Stage {domaine} Application", "entreprise": "InnovLabs", "lieu": "Lyon"},

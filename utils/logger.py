@@ -1,5 +1,14 @@
 import logging
 from datetime import datetime
+import sys
+import codecs
+
+# Force UTF-8 pour la console Windows (support emojis)
+if sys.stdout and sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 class HackathonLogger:
     """Logger simple pour le hackathon"""

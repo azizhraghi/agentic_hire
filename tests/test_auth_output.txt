@@ -1,0 +1,74 @@
+﻿[22:06:29] [Ôä╣´©Å] [Pipeline] Initialisation du pipeline...
+[22:06:29] [Ô£à] [Pipeline] Pipeline initialis├® !
+
+==================================================
+­ƒöÉ AUTHENTIFICATION
+==================================================
+1. Se connecter
+2. Cr├®er un compte
+3. Quitter
+
+> Choix: Nouvel identifiant: Mot de passe: R├┤le (1=Entrepreneur, 2=Etudiant): [22:06:29] [Ô£à] [AuthService] Nouvel utilisateur inscrit: testuser (entrepreneur)
+Ô£à Compte cr├®├® ! Bienvenue testuser.
+
+­ƒæï Bonjour testuser (entrepreneur)
+
+==================================================
+­ƒñû AgenticHire - Orchestrateur
+==================================================
+
+
+Options:
+1. ­ƒôØ Saisir une demande (Texte)
+2. ­ƒÄñ Transcrire un fichier audio (Demo)
+3. ÔØî D├®connexion / Quitter
+
+> Choix: 
+­ƒôØ Votre demande: [22:06:29] [Ôä╣´©Å] [Pipeline] ==================================================
+[22:06:29] [Ôä╣´©Å] [Pipeline] TRAITEMENT TEXTE
+[22:06:29] [Ôä╣´©Å] [Pipeline] ==================================================
+[22:06:29] [Ôä╣´©Å] [Orchestrator] Re├ºu (User: testuser): Je cherche un data scientist senior a Paris pour u...
+[22:06:29] [Ôä╣´©Å] [AgentComprehension] Analyse du texte: Je cherche un data scientist senior a Paris pour une mission de 6 mois, salaire 4000DT...
+[22:06:29] [Ô£à] [AgentComprehension] Type d├®tect├®: ENTREPRENEUR (confiance: 0.95)
+[22:06:29] [Ôä╣´©Å] [Orchestrator] Utilisateur identifi├®: UserType.ENTREPRENEUR
+[22:06:29] [Ôä╣´©Å] [Orchestrator] >>> Lancement du FLUX ENTREPRENEUR
+[22:06:29] [Ô£à] [Orchestrator] Donn├®es sauvegard├®es dans extraction_results.json (entr├®e #8)
+[22:06:29] [Ôä╣´©Å] [Orchestrator] 1. Cr├®ation du formulaire de candidature...
+[22:06:29] [Ôä╣´©Å] [AgentForms] G├®n├®ration du formulaire : Candidature - Data scientist senior
+[22:06:30] [Ô£à] [AgentForms] Formulaire Google Forms cr├®├® avec 4 sections
+[22:06:30] [Ôä╣´©Å] [Orchestrator] 2. G├®n├®ration et publication du post LinkedIn...
+[22:06:30] [Ôä╣´©Å] [AgentLinkedInPost] G├®n├®ration d'un post LinkedIn optimis├® pour : Data scientist senior
+Erreur API: 410 Client Error: Gone for url: https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta
+[22:06:31] [ÔÜá´©Å] [AgentLinkedInPost] R├®ponse vide d'API IA, passage au fallback.
+
+­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ APERCU LINKEDIN ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ
+­ƒöÑ Opportunit├® de carri├¿re : Data scientist senior chez Non sp├®cifi├® !
+
+Tu es expert(e) en  ? Tu cherches un nouveau challenge ├á Paris ?
+
+Rejoins-nous pour construire le futur ! ­ƒÜÇ
+
+­ƒô® Candidature simple et rapide : https://docs.google.com/forms/d/1XyZ...
+
+#Datascientistsenior #Recrutement #Paris #Emploi
+­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ­ƒöÁ
+
+[22:06:31] [Ô£à] [AgentLinkedInPost] Offre publi├®e (ID: #LI-25214)
+[22:06:31] [Ôä╣´©Å] [Orchestrator] Cycle Entrepreneur termin├® avec succ├¿s.
+
+Options:
+1. ­ƒôØ Saisir une demande (Texte)
+2. ­ƒÄñ Transcrire un fichier audio (Demo)
+3. ÔØî D├®connexion / Quitter
+
+> Choix: 
+D├®connexion...
+
+==================================================
+­ƒöÉ AUTHENTIFICATION
+==================================================
+1. Se connecter
+2. Cr├®er un compte
+3. Quitter
+
+> Choix: Au revoir ! ­ƒæï

@@ -10,14 +10,15 @@ class AgentComprehension:
     """
     
     def __init__(self):
-        self.logger = HackathonLogger("AgentComprehensionSimple")
+        self.logger = HackathonLogger("AgentComprehension")
         
         # Dictionnaires de mots-clés
         self.mots_entrepreneur = {
             'recruter', 'recrutement', 'embauche', 'poste', 'emploi',
-            'ingénieur', 'développeur', 'data scientist', 'full-stack',
+            'ingénieur', 'développeur', 'data', 'scientist', 'full-stack',
             'cdi', 'cdd', 'freelance', 'contrat', 'salaire',
-            'compétences', 'profil', 'candidat', 'équipe'
+            'compétences', 'profil', 'candidat', 'équipe',
+            'cherche', 'recherche', 'besoin', 'mission', 'entreprise', 'société'
         }
         
         self.mots_etudiant = {

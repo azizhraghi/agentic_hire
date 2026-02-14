@@ -1,0 +1,20 @@
+[
+  {
+    "id": "6755d33f-649a-433e-a999-3f67b0556ec0",
+    "username": "testuser",
+    "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+    "role": "entrepreneur",
+    "email": null,
+    "company_name": null,
+    "school_name": null
+  },
+  {
+    "id": "9d9ca02a-4041-436a-a636-462fcf73c5a0",
+    "username": "karoui",
+    "password_hash": "8915a61a13e8dce96f4eb33cf9022e10abbb06396b3a078812d3cd906b95beda",
+    "role": "entrepreneur",
+    "email": null,
+    "company_name": null,
+    "school_name": null
+  }
+]

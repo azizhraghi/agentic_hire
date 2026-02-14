@@ -4,3 +4,5 @@ pydantic
 pypdf2
 pydub
 tenacity
+streamlit
+pandas

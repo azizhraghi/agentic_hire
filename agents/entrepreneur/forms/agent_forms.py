@@ -18,7 +18,7 @@ class AgentGoogleForms:
             "Questions spécifiques au poste"
         ]
         
-        time.sleep(1) # Simulation réaliste
+        time.sleep(1) # Mock implementation
         
         self.logger.success(f"Formulaire Google Forms créé avec {len(sections)} sections")
         return "https://docs.google.com/forms/d/1XyZ..."
