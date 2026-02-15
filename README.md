@@ -3,7 +3,6 @@
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![AI Agents](https://img.shields.io/badge/AI-Multi--Agent-orange)
-![DeepSeek](https://img.shields.io/badge/DeepSeek-V3-purple)
 
 **AgenticHire** est une plateforme de recrutement de nouvelle génération, propulsée par un écosystème **Multi-Agents**. 
 Elle réunit **Recruteurs** et **Candidats** dans une interface conversationnelle unifiée, automatisant les tâches fastidieuses grâce à l'IA.
@@ -15,7 +14,6 @@ Elle réunit **Recruteurs** et **Candidats** dans une interface conversationnell
 - **JOMNI May**
 - **HRAGHI Mohamed Aziz**
 
----
 ---
 
 ## 💡 Le Problème
