@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+python-dotenv
+google-genai
+pydantic
+sqlalchemy
+streamlit
+requests
+beautifulsoup4
+pandas
+httpx
+numpy
+datasets
+folium
+streamlit-folium
+scikit-learn
+geopy

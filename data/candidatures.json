@@ -1,21 +1,31 @@
 [
   {
-    "offer_id": "OFF-1771121425",
-    "date": "2026-02-15 04:33:36",
-    "nom": "salah",
-    "prenom": "salah",
-    "email": "salah@gmail.com",
-    "tel": "22556699",
+    "offer_id": "OFF-1771135868",
+    "date": "2026-02-15 07:11:35",
+    "nom": "fedi",
+    "prenom": "fedi",
+    "email": "fedi@gmail.com",
+    "tel": "52525252",
     "cv_text": "",
     "has_file": true
   },
   {
-    "offer_id": "OFF-1771121425",
-    "date": "2026-02-15 04:33:48",
-    "nom": "aziz",
-    "prenom": "aziz",
-    "email": "aziz@gmail.com",
-    "tel": "22336677",
+    "offer_id": "OFF-1771135868",
+    "date": "2026-02-15 07:12:01",
+    "nom": "salah",
+    "prenom": "salah",
+    "email": "salah@gmail.com",
+    "tel": "56326956",
+    "cv_text": "",
+    "has_file": true
+  },
+  {
+    "offer_id": "OFF-1771135868",
+    "date": "2026-02-15 07:12:25",
+    "nom": "yacine",
+    "prenom": "yacine",
+    "email": "yacine@gmail.com",
+    "tel": "52525252",
     "cv_text": "",
     "has_file": true
   }
