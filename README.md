@@ -26,11 +26,18 @@ Elle réunit **Recruteurs** et **Candidats** dans une interface conversationnell
 
 L'application détecte automatiquement votre rôle (via NLP) et active les agents appropriés.
 
-### 👔 Espace Recruteur (Entrepreneur)
+### 👔 Espace Recruteur 
 - **✍️ Génération de Contenu** : Création automatique de posts LinkedIn viraux optimisés pour l'engagement.
 - **📊 Analyse de Candidatures** : Parsing de CVs, scoring de pertinence et tri automatique.
 - **📅 Gestion Automatisée** : Envoi d'emails de convocation ou de refus personnalisés.
 - **📝 Formulaires Intelligents** : Création de questionnaires de pré-qualification.
+
+### 👔 Startup AI Agent
+- **✍️ Project Overview** : Mission and target audience (entrepreneurs) Americain..
+- **📊 Key Features** :  7-step AI pipeline (Profiling, Matching, Map, Trajectory, Investors, Emails, Dashboard).
+- **📅 Gestion Automatisée** : Envoi d'emails de convocation ou de refus personnalisés.
+- **📝 Formulaires Intelligents** : Création de questionnaires de pré-qualification.
+
 
 ### 🎓 Espace Candidat (Étudiant/Freelance)
 *Propulsé par un système Multi-Agents (7 agents spécialisés)*
