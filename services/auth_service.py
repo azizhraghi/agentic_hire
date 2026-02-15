@@ -37,8 +37,8 @@ class AuthService:
     def _hash_password(self, password: str) -> str:
         return hashlib.sha256(password.encode()).hexdigest()
 
-    def register(self, username, password, role="entrepreneur", email=None) -> Optional[User]:
-        """Inscrit un nouvel utilisateur"""
+    def register(self, username, password, email=None) -> Optional[User]:
+        """Inscrit un nouvel utilisateur (Role générique)"""
         users = self._load_users()
         
         # Vérifier unicité
@@ -51,13 +51,13 @@ class AuthService:
             id=str(uuid.uuid4()),
             username=username,
             password_hash=self._hash_password(password),
-            role=role,
+            role="USER",
             email=email
         )
         
         users.append(new_user.dict())
         self._save_users(users)
-        self.logger.success(f"Nouvel utilisateur inscrit: {username} ({role})")
+        self.logger.success(f"Nouvel utilisateur inscrit: {username}")
         return new_user
 
     def login(self, username, password) -> Optional[User]:

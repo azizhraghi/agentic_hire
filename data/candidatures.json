@@ -1,0 +1,22 @@
+[
+  {
+    "offer_id": "OFF-1771121425",
+    "date": "2026-02-15 04:33:36",
+    "nom": "salah",
+    "prenom": "salah",
+    "email": "salah@gmail.com",
+    "tel": "22556699",
+    "cv_text": "",
+    "has_file": true
+  },
+  {
+    "offer_id": "OFF-1771121425",
+    "date": "2026-02-15 04:33:48",
+    "nom": "aziz",
+    "prenom": "aziz",
+    "email": "aziz@gmail.com",
+    "tel": "22336677",
+    "cv_text": "",
+    "has_file": true
+  }
+]

@@ -4,6 +4,7 @@ from services.auth_service import AuthService
 from models.user import UserRole
 import os
 import json
+from datetime import datetime
 
 # Configuration de la page
 st.set_page_config(
@@ -17,6 +18,67 @@ def init_session():
         st.session_state.user = None
     if "auth_service" not in st.session_state:
         st.session_state.auth_service = AuthService()
+
+def page_candidature():
+    """Page publique pour les candidats"""
+    st.title("📄 Postuler à une offre")
+    
+    # Récupérer l'ID de l'offre depuis l'URL
+    query_params = st.query_params
+    offer_id = query_params.get("offer_id", None)
+    
+    if not offer_id:
+        st.warning("⚠️ Lien invalide. Aucun ID d'offre spécifié.")
+        return
+
+    st.info(f"Vous postulez pour l'offre : **{offer_id}**")
+    
+    with st.form("form_candidat"):
+        col1, col2 = st.columns(2)
+        with col1:
+            nom = st.text_input("Nom")
+            email = st.text_input("Email")
+        with col2:
+            prenom = st.text_input("Prénom")
+            tel = st.text_input("Téléphone")
+            
+        cv_text = st.text_area("Copiez votre CV ou Lettre de Motivation ici", height=200)
+        
+        uploaded_file = st.file_uploader("Ou téléchargez votre CV (PDF)", type=["pdf"])
+        
+        submitted = st.form_submit_button("Envoyer ma candidature 🚀")
+        
+        if submitted:
+            if not nom or not email or (not cv_text and not uploaded_file):
+                st.error("Veuillez remplir les champs obligatoires (Nom, Email, CV).")
+            else:
+                # Sauvegarder la candidature
+                candidature = {
+                    "offer_id": offer_id,
+                    "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "nom": nom,
+                    "prenom": prenom,
+                    "email": email,
+                    "tel": tel,
+                    "cv_text": cv_text,
+                    "has_file": uploaded_file is not None
+                }
+                
+                # Sauvegarde dans JSON central
+                file_path = "data/candidatures.json"
+                existing_apps = []
+                if os.path.exists(file_path):
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        existing_apps = json.load(f)
+                
+                existing_apps.append(candidature)
+                
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(existing_apps, f, ensure_ascii=False, indent=2)
+                    
+                st.success("✅ Candidature envoyée avec succès ! Bonne chance 🍀")
+                st.balloons()
+
 
 def login_page():
     st.title("🔐 Connexion - AgenticHire")
@@ -41,11 +103,11 @@ def login_page():
         st.subheader("Créer un compte")
         new_user = st.text_input("Nouvel identifiant", key="reg_user")
         new_pwd = st.text_input("Nouveau mot de passe", type="password", key="reg_pwd")
-        role = st.selectbox("Rôle", ["entrepreneur", "etudiant"], key="reg_role")
+        # Role supprimé : Déterminé par l'usage
         
         if st.button("S'inscrire"):
             if new_user and new_pwd:
-                user = st.session_state.auth_service.register(new_user, new_pwd, role)
+                user = st.session_state.auth_service.register(new_user, new_pwd)
                 if user:
                     st.success("Compte créé ! Connectez-vous.")
                 else:
@@ -64,18 +126,27 @@ def dashboard_entrepreneur():
         if os.path.exists(user_file):
             with open(user_file, "r", encoding="utf-8") as f:
                 content = json.load(f)
-                mes_offres = content if isinstance(content, list) else [content]
-        # Fallback pour données anciennes
-        elif os.path.exists("data/extraction_results.json"):
-            with open("data/extraction_results.json", "r", encoding="utf-8") as f:
-                content = json.load(f)
-                data = content if isinstance(content, list) else [content]
-                mes_offres = [d for d in data if d.get("user_id") == st.session_state.user.id]
+                if isinstance(content, list):
+                    # Aplatir si c'est une liste de listes (ex: [[{...}]])
+                    flat_content = []
+                    for item in content:
+                        if isinstance(item, list):
+                            flat_content.extend(item)
+                        else:
+                            flat_content.append(item)
+                    mes_offres = flat_content
+                else:
+                    mes_offres = [content]
     except Exception as e:
         st.error(f"Erreur de lecture: {e}")
 
     # SECTION 1: TABLEAU
     st.subheader("📋 Mes Candidatures")
+    
+    # Préparer les options pour les listes déroulantes (utilisé dans plusieurs sections)
+    options = {f"#{d['id']} - {d['data'].get('job_title', 'Sans titre')} ({d['date']})": d for d in mes_offres}
+    sorted_keys = sorted(options.keys(), key=lambda x: int(x.split('#')[1].split(' ')[0]), reverse=True)
+
     if mes_offres:
         # Aplatir pour le tableau
         rows = []
@@ -90,11 +161,6 @@ def dashboard_entrepreneur():
         # SECTION 2: DÉTAILS & APOSTS
         st.markdown("---")
         st.subheader("📢 Détails & Publications LinkedIn")
-        
-        # Sélecteur
-        options = {f"#{d['id']} - {d['data'].get('job_title', 'Sans titre')} ({d['date']})": d for d in mes_offres}
-        # Trier par ID décroissant (plus récent en haut)
-        sorted_keys = sorted(options.keys(), key=lambda x: int(x.split('#')[1].split(' ')[0]), reverse=True)
         
         choice = st.selectbox("🔍 Sélectionnez une offre pour voir le contenu généré :", sorted_keys)
         
@@ -128,6 +194,79 @@ def dashboard_entrepreneur():
 
     else:
         st.info("Aucune offre trouvée. Créez votre première mission dans l'onglet 'Nouvelle Recherche' !")
+
+    # SECTION 3: ACTIONS & DISPATCHING
+    st.markdown("---")
+    st.subheader("🤖 Dispatching & Recrutement")
+    
+    col_disp1, col_disp2 = st.columns([2, 1])
+    
+    with col_disp1:
+        st.write("Lancez l'agent pour analyser les candidatures reçues et envoyer les convocations.")
+        offer_to_dispatch = st.selectbox("Choisir une offre à traiter :", sorted_keys, key="dispatch_select")
+        
+        if st.button("👁️ Voir les candidats", type="secondary"):
+            if offer_to_dispatch:
+                selected_offer = options[offer_to_dispatch]
+                offer_id = selected_offer.get("artifacts", {}).get("offer_id")
+                
+                if offer_id:
+                   # Import dynamique
+                    from agents.entrepreneur.agent_entrepreneur import AgentEntrepreneur
+                    agent = AgentEntrepreneur()
+                    candidats = agent.get_candidatures(offer_id)
+                    
+                    if candidats:
+                        st.write(f"**{len(candidats)} Candidature(s) reçue(s) :**")
+                        df_c = pd.DataFrame(candidats)
+                        cols = ["date", "nom", "prenom", "email"]
+                        if "date_rdv" in df_c.columns:
+                            cols.append("date_rdv")
+                        st.dataframe(df_c[cols], hide_index=True)
+                    else:
+                        st.warning("Aucune candidature pour le moment.")
+                else:
+                    st.warning("Offre sans ID compatible.")
+
+        st.write("")
+        if st.button("🚀 Lancer le Dispatching (Tri + Convocations)", type="primary"):
+            if offer_to_dispatch:
+                selected_offer = options[offer_to_dispatch]
+                offer_id = selected_offer.get("artifacts", {}).get("offer_id") # On suppose que l'ID est dans artifacts
+                
+                # Si pas d'offer_id dans artifacts (anciennes données), on essaie de le déduire ou on avertit
+                if not offer_id:
+                     # Pour la compatibilité, on peut utiliser l'ID du timestamp si présent
+                     st.warning("Cette offre est ancienne et n'a pas d'ID compatible pour le dispatching.")
+                else:
+                    with st.status("🧠 Agent Entrepreneur au travail...", expanded=True) as status:
+                        st.write("📂 Lecture des candidatures...")
+                        
+                        # Import dynamique pour éviter cycles
+                        from agents.entrepreneur.agent_entrepreneur import AgentEntrepreneur
+                        agent = AgentEntrepreneur()
+                        
+                        resultats = agent.dispatcher_candidatures(offer_id)
+                        
+                        if resultats is None:
+                            status.update(label="⚠️ Aucune candidature", state="error")
+                            st.warning("Aucune candidature trouvée pour cette offre.")
+                        else:
+                            status.update(label="✅ Dispatching terminé !", state="complete")
+                            st.success(f"Analyse terminée : {len(resultats)} candidats traités.")
+                            
+                            # Afficher les résultats
+                            st.write("### 🏆 Classement IA & Planning")
+                            df_results = pd.DataFrame(resultats)
+                            if not df_results.empty:
+                                cols_to_show = ["nom", "prenom", "email", "score"]
+                                if "date_rdv" in df_results.columns:
+                                    cols_to_show.append("date_rdv")
+                                st.dataframe(df_results[cols_to_show], hide_index=True)
+                            
+                            st.caption("Les candidats avec un score > 75 ont reçu une convocation avec leur date d'entretien.")
+                            
+                            st.caption("Les candidats avec un score > 75 ont reçu une convocation par email.")
 
 def nouvelle_recherche_page():
     st.header("🎯 Lancer une nouvelle mission")
@@ -175,30 +314,102 @@ def dashboard_etudiant():
     st.info("Recherche de stages en cours de développement...")
 
 def main():
+    st.set_page_config(page_title="AgenticHire", page_icon="🤖", layout="wide")
     init_session()
-    
+
+    # --- PUBLIC ACCESS (CANDIDAT) ---
+    # Récupérer les paramètres d'URL (Streamlit >= 1.30)
+    query_params = st.query_params
+    if query_params.get("page") == "candidat":
+        page_candidature()
+        return
+
+    # --- PRIVATE ACCESS (LOGIN REQUIRED) ---
     if not st.session_state.user:
         login_page()
     else:
-        # Sidebar
+        # --- STATE MANAGEMENT ---
+        if "workspace" not in st.session_state:
+            st.session_state.workspace = None # 'entrepreneur', 'student', or None
+
+        # --- SIDEBAR ---
         with st.sidebar:
-            st.write(f"👤 **{st.session_state.user.username}**")
-            st.caption(f"Rôle: {st.session_state.user.role}")
-            if st.button("Déconnexion"):
-                st.session_state.user = None
+            st.title("🤖 AgenticHire")
+            st.write(f"👤 {st.session_state.user.username}")
+            
+            if st.button("🔄 Reset / Accueil"):
+                st.session_state.workspace = None
                 st.rerun()
-        
-        # Router Dashboard
-        if st.session_state.user.role == UserRole.ENTREPRENEUR.value:
-            tab1, tab2 = st.tabs(["📊 Tableau de Bord", "➕ Nouvelle Recherche"])
-            with tab1:
+
+            if st.button("Se déconnecter"):
+                st.session_state.auth_service.logout()
+                st.session_state.user = None
+                st.session_state.workspace = None
+                st.rerun()
+            
+            st.divider()
+            st.caption("Mode Hackathon 🚀")
+
+        # --- MAIN CONTENT ---
+        st.title("💬 Assistant IA Recrutement")
+
+        # 1. Historique du chat
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+            st.session_state.messages.append({"role": "assistant", "content": "Bonjour ! Je suis votre agent IA. Dites-moi si vous cherchez un job ou si vous recrutez."})
+
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
+
+        # 2. Espace de Travail (PERSISTANT)
+        if st.session_state.workspace == 'entrepreneur':
+            st.divider()
+            st.info("🔓 Espace Recruteur Activé")
+            with st.expander("🚀 TABLEAU DE BORD RECRUTEUR", expanded=True):
                 dashboard_entrepreneur()
-            with tab2:
-                nouvelle_recherche_page()
-        elif st.session_state.user.role == UserRole.ETUDIANT.value:
-            dashboard_etudiant()
-        else:
-            st.error(f"Rôle inconnu: {st.session_state.user.role}")
+        
+        elif st.session_state.workspace == 'student':
+            st.divider()
+            st.info("🔓 Espace Candidat Activé")
+            with st.expander("🎓 ESPACE CANDIDAT", expanded=True):
+                st.subheader("Mes Outils")
+                uploaded_cv = st.file_uploader("1. Analysez votre CV (PDF)", type=["pdf"])
+                if st.button("2. Lancer la recherche de stage"):
+                    from agents.student.agent_student import AgentStudent
+                    agent = AgentStudent()
+                    # TODO: Connecter le vrai profil
+                    jobs = agent.chercher_et_matcher({"primary_role": "Développeur Python", "technical_skills": ["Python", "Django"]})
+                    st.write(f"🔎 {len(jobs)} offres trouvées !")
+                    st.dataframe(jobs)
+
+        # 3. Zone de saisie
+        if user_input := st.chat_input("Votre demande..."):
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            with st.chat_message("user"):
+                st.write(user_input)
+
+            # Analyse
+            from agents.core.orchestrator import Orchestrator
+            orch = Orchestrator()
+            orch.set_user(st.session_state.user) # Pass user context for correct data saving
+            
+            with st.spinner("🧠 Réflexion..."):
+                response = orch.handle_request(user_input, st.session_state.user.id)
+            
+            # Mise à jour de la réponse et du state
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            with st.chat_message("assistant"):
+                st.write(response)
+
+            # Détection de changement de contexte
+            lower_resp = response.lower()
+            if "recruteur" in lower_resp:
+                st.session_state.workspace = 'entrepreneur'
+                st.rerun()
+            elif "candidat" in lower_resp:
+                st.session_state.workspace = 'student'
+                st.rerun()
 
 if __name__ == "__main__":
     main()

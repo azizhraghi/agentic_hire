@@ -14,17 +14,20 @@ class AgentComprehension:
         
         # Dictionnaires de mots-clés
         self.mots_entrepreneur = {
-            'recruter', 'recrutement', 'embauche', 'poste', 'emploi',
-            'ingénieur', 'développeur', 'data', 'scientist', 'full-stack',
-            'cdi', 'cdd', 'freelance', 'contrat', 'salaire',
-            'compétences', 'profil', 'candidat', 'équipe',
-            'cherche', 'recherche', 'besoin', 'mission', 'entreprise', 'société'
+            'recruter', 'recrutement', 'embauche', 'embaucher', 'employeur',
+            'candidat', 'cv', 'profil', 'talent', 'collaborateur',
+            'cdi', 'cdd', 'contrat', 'salaire', 'budget',
+            'équipe', 'besoin', 'urgent', 'société',
+            'développeur', 'ingénieur', 'consultant', 'cto', 'lead' # Métiers souvent cherchés
         }
         
         self.mots_etudiant = {
-            'stage', 'alternance', 'apprentissage', 'étudiant',
-            'cv', 'candidature', 'postuler', 'école', 'université',
-            'master', 'licence', 'formation', 'gratuit'
+            'stage', 'stagiaire', 'alternance', 'alternant', 'apprentissage', 'apprenti',
+            'pfe', 'pfa', 'été', 'summer', 'job',
+            'étudiant', 'école', 'université', 'formation', 'diplôme',
+            'master', 'licence', 'ingénieur', # Ambigu mais souvent "étudiant ingénieur"
+            'postuler', 'candidature', 'lettre', 'motivation',
+            'recherche', 'cherche', 'trouver' # Souvent associé à "je cherche un stage"
         }
         
 

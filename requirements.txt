@@ -1,8 +1,11 @@
-requests
-python-dotenv
-pydantic
-pypdf2
-pydub
-tenacity
 streamlit
 pandas
+python-dotenv
+requests
+beautifulsoup4
+pydantic
+tenacity
+huggingface_hub
+striprtf
+pypdf2
+openai

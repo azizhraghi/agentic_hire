@@ -1,8 +1,7 @@
 from models.user import User
 from models.schemas import UserType
 from agents.core.comprehension.agent_comprehension import AgentComprehension
-from agents.entrepreneur.agent_linkedin_post import AgentLinkedInPost
-from agents.entrepreneur.forms.agent_forms import AgentGoogleForms
+from agents.entrepreneur.agent_entrepreneur import AgentEntrepreneur
 from utils.logger import AgenticLogger
 import json
 import os
@@ -15,56 +14,54 @@ class Orchestrator:
     def __init__(self):
         self.logger = AgenticLogger("Orchestrator")
         self.comprehension = AgentComprehension()
-        # Initialisation des agents
-        self.agent_linkedin = AgentLinkedInPost()
-        self.agent_forms = AgentGoogleForms() 
+        # Initialisation de l'agent unifié
+        self.agent_entrepreneur = AgentEntrepreneur()
         self.current_user = None
 
     def set_user(self, user: User):
         self.current_user = user
 
-    def traiter_demande(self, texte: str):
-        user_name = self.current_user.username if self.current_user else 'Anon'
-        self.logger.info(f"Reçu (User: {user_name}): {texte[:50]}...")
+    def handle_request(self, text: str, user_id: str) -> str:
+        """Méthode unifiée pour app.py qui retourne une réponse textuelle"""
+        self.logger.info(f"Traitement demande User {user_id}: {text}")
         
-        # 1. Comprendre la demande
-        resultat = self.comprehension.process(texte)
+        # 1. Analyse
+        resultat = self.comprehension.process(text)
         type_user = resultat.type_utilisateur
         
-        self.logger.info(f"Utilisateur identifié: {type_user}")
+        response = ""
         
-        # 2. Router selon le type
         if type_user == UserType.ENTREPRENEUR:
             self._flux_entrepreneur(resultat.donnees_extraites)
+            response = "J'ai bien compris que vous êtes **recruteur**. J'ai préparé votre espace pour créer un **post LinkedIn** et gérer les candidatures."
+            
         elif type_user == UserType.ETUDIANT:
             self._flux_etudiant(resultat.donnees_extraites)
+            response = "J'ai bien compris que vous êtes **candidat**. Vous pouvez uploader votre **CV** ou voir les **offres** de stage correspondant à votre profil."
+            
         else:
-            self.logger.warning("Type utilisateur inconnu ou non géré.")
+            response = "Je n'ai pas réussi à déterminer si vous cherchez un emploi ou si vous recrutez. Pouvez-vous préciser ?"
+            
+        return response
+
+    def traiter_demande(self, texte: str):
+        # Gardé pour rétro-compatibilité ou usage interne
+        return self.handle_request(texte, "cli_user")
 
     def _flux_entrepreneur(self, data):
-        self.logger.info(">>> Lancement du FLUX ENTREPRENEUR")
+        self.logger.info(">>> Lancement du FLUX ENTREPRENEUR (Unifié)")
         
-        # 1. Création du Formulaire
-        self.logger.info("1. Création du formulaire de candidature...")
+        # Délégation complète à l'AgentEntrepreneur
         try:
-            form_link = self.agent_forms.creer_formulaire(data)
+            user_id = self.current_user.id if self.current_user else "anonymous"
+            artifacts = self.agent_entrepreneur.creer_mission(user_id, data)
+            
+            # Sauvegarde des résultats
+            self._sauvegarder_donnees(data, "entrepreneur", artifacts)
+            self.logger.info("Cycle Entrepreneur terminé avec succès.")
+            
         except Exception as e:
-            self.logger.error(f"Erreur Forms: {e}")
-            form_link = None
-        
-        # 2. Publication LinkedIn
-        self.logger.info("2. Génération et publication du post LinkedIn...")
-        post_info = self.agent_linkedin.poster_offre(data, form_link)
-        
-        # 3. Sauvegarde (Données + Artefacts)
-        artifacts = {
-            "form_link": form_link,
-            "linkedin_post": post_info.get("content"),
-            "linkedin_url": post_info.get("url")
-        }
-        self._sauvegarder_donnees(data, "entrepreneur", artifacts)
-        
-        self.logger.info("Cycle Entrepreneur terminé avec succès.")
+            self.logger.error(f"Erreur durant le cycle Entrepreneur: {e}")
 
     def _flux_etudiant(self, data):
         self.logger.info(">>> Lancement du FLUX ETUDIANT")
