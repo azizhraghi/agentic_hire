@@ -309,9 +309,8 @@ def nouvelle_recherche_page():
             st.warning("Veuillez saisir une description.")
 
 def dashboard_etudiant():
-    st.title("🎓 Espace Étudiant")
-    st.write(f"Bonjour **{st.session_state.user.username}**")
-    st.info("Recherche de stages en cours de développement...")
+    from agents.student.interface import render_student_dashboard
+    render_student_dashboard()
 
 def main():
     st.set_page_config(page_title="AgenticHire", page_icon="🤖", layout="wide")
@@ -371,17 +370,8 @@ def main():
         
         elif st.session_state.workspace == 'student':
             st.divider()
-            st.info("🔓 Espace Candidat Activé")
             with st.expander("🎓 ESPACE CANDIDAT", expanded=True):
-                st.subheader("Mes Outils")
-                uploaded_cv = st.file_uploader("1. Analysez votre CV (PDF)", type=["pdf"])
-                if st.button("2. Lancer la recherche de stage"):
-                    from agents.student.agent_student import AgentStudent
-                    agent = AgentStudent()
-                    # TODO: Connecter le vrai profil
-                    jobs = agent.chercher_et_matcher({"primary_role": "Développeur Python", "technical_skills": ["Python", "Django"]})
-                    st.write(f"🔎 {len(jobs)} offres trouvées !")
-                    st.dataframe(jobs)
+                dashboard_etudiant()
 
         # 3. Zone de saisie
         if user_input := st.chat_input("Votre demande..."):

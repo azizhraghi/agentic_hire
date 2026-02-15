@@ -8,27 +8,23 @@ Ce document décrit la nouvelle architecture modulaire du projet.
 - **Rôle** : Le Chef d'Orchestre.
 - **Fonction** : Reçoit la demande (texte), identifie le type d'utilisateur (Entrepreneur vs Étudiant) via `AgentComprehension`, et dirige vers le bon flux de travail.
 
-### **`comprehension/`**
-- **`agent_comprehension.py`** : Analyse le texte pour extraire les entités (compétences, dates, lieux, écoles).
+### **`student/` (Nouveau Système Multi-Agents)**
+- **`multi_agent_system.py`** : Système complet avec 7 agents spécialisés (Analyse CV, Scraping, Matching, etc.).
+- **`interface.py`** : Interface Streamlit dédiée aux étudiants (Dashboard).
+- **`tools/job_scraper.py`** : Scraper robuste (LinkedIn, RemoteOK, WeWorkRemotely, Adzuna).
 
-### **`audio/`**
-- **`agent_audio.py`** : Transcrit les fichiers audio en texte via Hugging Face.
+### **`entrepreneur/`**
+- **`agent_entrepreneur.py`** : Agent principal pour les recruteurs.
+- **`agent_linkedin_post.py`** : Génération de posts LinkedIn.
 
-### **`linkedin/`**
-- **`agent_post.py`** : (Entrepreneur) Publie des offres d'emploi.
-- **`agent_search.py`** : (Étudiant) Cherche des offres de stage.
-
-### **`forms/`**
-- **`agent_forms.py`** : (Entrepreneur) Crée des formulaires Google Forms pour les candidats et récupère les réponses.
-
-### **`analysis/`**
-- **`agent_scoring.py`** : (Entrepreneur) Analyse les candidatures, calcule un score de pertinence (matching CV vs Offre) et génère le fichier Excel/CSV des entretiens.
-
-### **`communication/`**
-- **`agent_email.py`** : (Entrepreneur) Envoie les convocations ou les refus par email.
+### **`core/`**
+- **`audio/`** : Transcription audio (Whisper/HuggingFace).
+- **`comprehension/`** : Analyse d'intention.
 
 ## 📄 Fichiers Racine
 
-- **`main.py`** : Point d'entrée. Initialise le pipeline, gère l'entrée (Micro/Clavier) et passe la main à l'Orchestrateur.
-- **`.env`** : Clés API (Hugging Face, LinkedIn, Google, etc.).
-- **`requirements.txt`** : Dépendances Python.
+- **`app.py`** : Point d'entrée principal (Interface Web Streamlit).
+- **`cli_main.py`** : Ancienne interface en ligne de commande (Legacy).
+- **`.env`** : Clés API.
+- **`requirements.txt`** : Dépendances.
+
