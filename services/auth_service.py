@@ -4,14 +4,14 @@ import hashlib
 import uuid
 from typing import Optional, List, Dict
 from models.user import User, UserRole
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 
 class AuthService:
     """Service de gestion de l'authentification (JSON based)"""
     
     def __init__(self, db_path="data/users.json"):
         self.db_path = db_path
-        self.logger = HackathonLogger("AuthService")
+        self.logger = AgenticLogger("AuthService")
         self._ensure_db()
         self.current_user: Optional[User] = None
 

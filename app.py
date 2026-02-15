@@ -66,8 +66,8 @@ def dashboard_entrepreneur():
                 content = json.load(f)
                 mes_offres = content if isinstance(content, list) else [content]
         # Fallback pour données anciennes
-        elif os.path.exists("extraction_results.json"):
-            with open("extraction_results.json", "r", encoding="utf-8") as f:
+        elif os.path.exists("data/extraction_results.json"):
+            with open("data/extraction_results.json", "r", encoding="utf-8") as f:
                 content = json.load(f)
                 data = content if isinstance(content, list) else [content]
                 mes_offres = [d for d in data if d.get("user_id") == st.session_state.user.id]
@@ -85,7 +85,7 @@ def dashboard_entrepreneur():
             row["ID"] = offre.get("id")
             rows.append(row)
         
-        st.dataframe(pd.DataFrame(rows), use_container_width=True)
+        st.dataframe(pd.DataFrame(rows), width='stretch')
         
         # SECTION 2: DÉTAILS & APOSTS
         st.markdown("---")
@@ -150,11 +150,22 @@ def nouvelle_recherche_page():
                 try:
                     st.session_state.orchestrator.traiter_demande(texte_demande)
                     status.update(label="✅ Mission terminée !", state="complete", expanded=False)
-                    st.success("Succès ! Allez voir le résultat dans le Tableau de Bord.")
+                    st.success("✅ Succès ! Votre offre a été créée et le post LinkedIn généré.")
                     st.balloons()
+                    
+                    # Attendre un peu pour que l'utilisateur voie le message
+                    import time
+                    time.sleep(2)
+                    
+                    # Recharger automatiquement la page pour afficher les nouvelles données
+                    st.rerun()
+                    
                 except Exception as e:
+                    import traceback
                     status.update(label="❌ Erreur", state="error")
                     st.error(f"Une erreur est survenue : {e}")
+                    with st.expander("🔍 Détails de l'erreur"):
+                        st.code(traceback.format_exc())
         else:
             st.warning("Veuillez saisir une description.")
 

@@ -1,4 +1,4 @@
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 import time
 import random
 
@@ -6,7 +6,7 @@ class AgentLinkedInSearch:
     """Agent pour la recherche de stage sur LinkedIn (Étudiant)"""
     
     def __init__(self):
-        self.logger = HackathonLogger("AgentSearch")
+        self.logger = AgenticLogger("AgentSearch")
 
     def chercher_stage(self, criteres: dict):
         domaine = criteres.get('field_of_study', 'Domaine inconnu')

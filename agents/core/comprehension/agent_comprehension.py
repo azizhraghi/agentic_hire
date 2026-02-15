@@ -1,7 +1,7 @@
 
 
 from models.schemas import UserType, ComprehensionOutput
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 import re
 
 class AgentComprehension:
@@ -10,7 +10,7 @@ class AgentComprehension:
     """
     
     def __init__(self):
-        self.logger = HackathonLogger("AgentComprehension")
+        self.logger = AgenticLogger("AgentComprehension")
         
         # Dictionnaires de mots-clés
         self.mots_entrepreneur = {

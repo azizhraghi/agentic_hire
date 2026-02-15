@@ -1,6 +1,6 @@
 import os
 from utils.hf_client import HuggingFaceClient
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 
 class AgentAudio:
     """
@@ -9,7 +9,7 @@ class AgentAudio:
     
     def __init__(self, hf_client: HuggingFaceClient):
         self.hf = hf_client
-        self.logger = HackathonLogger("AgentAudio")
+        self.logger = AgenticLogger("AgentAudio")
     
     def transcrire(self, audio_path: str) -> str:
         """

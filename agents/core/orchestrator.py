@@ -3,7 +3,7 @@ from models.schemas import UserType
 from agents.core.comprehension.agent_comprehension import AgentComprehension
 from agents.entrepreneur.agent_linkedin_post import AgentLinkedInPost
 from agents.entrepreneur.forms.agent_forms import AgentGoogleForms
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 import json
 import os
 from datetime import datetime
@@ -13,7 +13,7 @@ class Orchestrator:
     Chef d'orchestre qui dirige les requêtes vers les bons agents
     """
     def __init__(self):
-        self.logger = HackathonLogger("Orchestrator")
+        self.logger = AgenticLogger("Orchestrator")
         self.comprehension = AgentComprehension()
         # Initialisation des agents
         self.agent_linkedin = AgentLinkedInPost()

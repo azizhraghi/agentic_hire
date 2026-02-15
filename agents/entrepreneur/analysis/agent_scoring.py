@@ -1,4 +1,4 @@
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 import time
 import random
 
@@ -6,7 +6,7 @@ class AgentCandidateScoring:
     """Agent d'analyse et de scoring des candidatures"""
     
     def __init__(self):
-        self.logger = HackathonLogger("AgentScoring")
+        self.logger = AgenticLogger("AgentScoring")
         
     def analyser_candidats(self, responses: list):
         self.logger.info(f"Analyse de {len(responses)} candidatures reçues...")
@@ -26,7 +26,7 @@ class AgentSheetGenerator:
     """Générateur de planning d'entretiens"""
     
     def __init__(self):
-        self.logger = HackathonLogger("AgentSheet")
+        self.logger = AgenticLogger("AgentSheet")
         
     def generer_planning(self, candidats_retenus: list):
         self.logger.info("Génération du fichier Excel pour les entretiens...")

@@ -1,11 +1,11 @@
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 import time
 
 class AgentGoogleForms:
     """Agent pour la création automatique de formulaires"""
     
     def __init__(self):
-        self.logger = HackathonLogger("AgentForms")
+        self.logger = AgenticLogger("AgentForms")
 
     def creer_formulaire(self, details: dict):
         titre = f"Candidature - {details.get('job_title', 'Poste')}"

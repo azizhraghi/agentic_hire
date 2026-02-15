@@ -1,11 +1,11 @@
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 import time
 
 class AgentEmail:
     """Agent de communication par email"""
     
     def __init__(self):
-        self.logger = HackathonLogger("AgentEmail")
+        self.logger = AgenticLogger("AgentEmail")
         
     def envoyer_invitation(self, email: str, details: dict):
         self.logger.info(f"Envoi email à : {email}")

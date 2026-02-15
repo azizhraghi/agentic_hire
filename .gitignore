@@ -15,5 +15,7 @@ env/
 .vscode/
 .idea/
 
-# Hackathon specific
-extraction_results.json
+# Data files
+data/extraction_results.json
+data/*_data.json
+*.log

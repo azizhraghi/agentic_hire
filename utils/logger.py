@@ -10,8 +10,8 @@ if sys.stdout and sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-class HackathonLogger:
-    """Logger simple pour le hackathon"""
+class AgenticLogger:
+    """Logger principal de l'application AgenticHire"""
     
     def __init__(self, name: str):
         self.name = name

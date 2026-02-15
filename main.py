@@ -2,7 +2,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from utils.hf_client import HuggingFaceClient
-from utils.logger import HackathonLogger
+from utils.logger import AgenticLogger
 from agents.core.orchestrator import Orchestrator
 from agents.core.audio.agent_audio import AgentAudio
 from services.auth_service import AuthService
@@ -16,7 +16,7 @@ class HackathonPipeline:
     """
     
     def __init__(self):
-        self.logger = HackathonLogger("Pipeline")
+        self.logger = AgenticLogger("Pipeline")
         self.logger.info("Initialisation du pipeline...")
         
         # Initialiser le client Hugging Face
