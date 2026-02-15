@@ -9,7 +9,13 @@
 Elle réunit **Recruteurs** et **Candidats** dans une interface conversationnelle unifiée, automatisant les tâches fastidieuses grâce à l'IA.
 
 > 🚀 **Projet Hackathon** - Architecture Modulaire & Chat-First
+## 👥 Équipe
 
+- **KAROUI Mohamed Fares**
+- **JOMNI May**
+- **HRAGHI Mohamed Aziz**
+
+---
 ---
 
 ## 💡 Le Problème
