@@ -19,6 +19,7 @@ Elle réunit **Recruteurs** et **Candidats** dans une interface conversationnell
 ## 💡 Le Problème
 - **Recruteurs** : Perte de temps sur la rédaction d'offres, le tri des CVs et la gestion des emails.
 - **Candidats** : Difficulté à trouver des offres pertinentes et à adapter leur CV à chaque poste.
+- - **Entrepreneur** : cherche à faire une étude sur le marché et des investisseurs.
 
 ## ✨ La Solution AgenticHire
 
