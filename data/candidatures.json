@@ -28,5 +28,25 @@
     "tel": "52525252",
     "cv_text": "",
     "has_file": true
+  },
+  {
+    "offer_id": "OFF-1771668616",
+    "date": "2026-02-21 11:11:49",
+    "nom": "hraghi",
+    "prenom": "medaziz",
+    "email": "azizhraghi@gmail.com",
+    "tel": "22446688",
+    "cv_text": "",
+    "has_file": true
+  },
+  {
+    "offer_id": "OFF-1771668616",
+    "date": "2026-02-21 11:12:37",
+    "nom": "hraghi",
+    "prenom": "khalil ",
+    "email": "medkhalilhraghi@gmail.com",
+    "tel": "22224444",
+    "cv_text": "",
+    "has_file": true
   }
 ]
