@@ -16,5 +16,23 @@
     "email": null,
     "company_name": null,
     "school_name": null
+  },
+  {
+    "id": "10cdc38f-2e0f-409b-92d2-191500971cd7",
+    "username": "aziz",
+    "password_hash": "7229d53a2bf91de1782fb17f3b84972ab365984d38ac3994c99a891c396a462e",
+    "role": "USER",
+    "email": null,
+    "company_name": null,
+    "school_name": null
+  },
+  {
+    "id": "48123878-03ef-442f-991a-5c6c65a99fc4",
+    "username": "azizz",
+    "password_hash": "7e7cd8122b8edf66fca3061dfba42f18ce2975256fccaed1d9025b04d1db693f",
+    "role": "USER",
+    "email": null,
+    "company_name": null,
+    "school_name": null
   }
 ]
