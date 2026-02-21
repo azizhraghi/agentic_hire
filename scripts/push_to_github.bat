@@ -29,7 +29,7 @@ echo [4/5] Configuration du Remote...
 git remote -v > nul 2>&1
 if %errorlevel% neq 0 (
     echo Configuration de l'URL distant...
-    git remote add origin https://github.com/azizhraghi/AgenticHire.git
+    git remote add origin https://github.com/azizhraghi/agentic_hire.git
 ) else (
     echo Remote 'origin' deja configure.
 )
