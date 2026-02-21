@@ -7,11 +7,10 @@
 **AgenticHire** est une plateforme de recrutement de nouvelle génération, propulsée par un écosystème **Multi-Agents**. 
 Elle réunit **Recruteurs** et **Candidats** dans une interface conversationnelle unifiée, automatisant les tâches fastidieuses grâce à l'IA.
 
-> 🚀 **Projet Hackathon** - Architecture Modulaire & Chat-First
+> 🚀 **Projet PFA** - Architecture Modulaire & Chat-First
 ## 👥 Équipe
 
-- **KAROUI Mohamed Fares**
-- **JOMNI May**
+- **HAJJI Neyssem**
 - **HRAGHI Mohamed Aziz**
 
 ---
@@ -68,7 +67,7 @@ L'application détecte automatiquement votre rôle (via NLP) et active les agent
 
 ### 1. Cloner le projet
 ```bash
-git clone https://github.com/KAROUIFARES/AgenticHire.git
+git clone https://github.com/azizhraghi/agentic_hire.git
 cd AgenticHire
 ```
 
@@ -125,4 +124,4 @@ agents/
 
 ---
 
-*Développé avec ❤️ pour le Hackathon*
+*Développé avec ❤️ pour le PFA*
