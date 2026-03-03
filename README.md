@@ -4,10 +4,11 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
 ![AI Agents](https://img.shields.io/badge/AI-Multi--Agent-orange)
 
-**AgenticHire** est une plateforme de recrutement de nouvelle génération, propulsée par un écosystème **Multi-Agents**. 
-Elle réunit **Recruteurs** et **Candidats** dans une interface conversationnelle unifiée, automatisant les tâches fastidieuses grâce à l'IA.
+**AgenticHire** est une plateforme de recrutement de nouvelle génération, propulsée par un écosystème **Multi-Agents** (DeepSeek V3, Mistral, HuggingFace). 
 
-> 🚀 **Projet PFA** - Architecture Modulaire & Chat-First
+Elle réunit **Recruteurs** et **Étudiants/Candidats** dans une interface conversationnelle unifiée ("Chat-First"), automatisant l'intégralité du pipeline de recrutement et de recherche d'emploi.
+
+> 🚀 **Projet PFA** - Architecture Modulaire & Intelligence Artificielle de Pointe
 ## 👥 Équipe
 
 - **HAJJI Neyssem**
@@ -18,7 +19,6 @@ Elle réunit **Recruteurs** et **Candidats** dans une interface conversationnell
 ## 💡 Le Problème
 - **Recruteurs** : Perte de temps sur la rédaction d'offres, le tri des CVs et la gestion des emails.
 - **Candidats** : Difficulté à trouver des offres pertinentes et à adapter leur CV à chaque poste.
-- - **Entrepreneur** : cherche à faire une étude sur le marché et des investisseurs.
 
 ## ✨ La Solution AgenticHire
 
@@ -27,12 +27,6 @@ L'application détecte automatiquement votre rôle (via NLP) et active les agent
 ### 👔 Espace Recruteur 
 - **✍️ Génération de Contenu** : Création automatique de posts LinkedIn viraux optimisés pour l'engagement.
 - **📊 Analyse de Candidatures** : Parsing de CVs, scoring de pertinence et tri automatique.
-- **📅 Gestion Automatisée** : Envoi d'emails de convocation ou de refus personnalisés.
-- **📝 Formulaires Intelligents** : Création de questionnaires de pré-qualification.
-
-### 👔 Startup AI Agent
-- **✍️ Project Overview** : Mission and target audience (entrepreneurs) Americain..
-- **📊 Key Features** :  7-step AI pipeline (Profiling, Matching, Map, Trajectory, Investors, Emails, Dashboard).
 - **📅 Gestion Automatisée** : Envoi d'emails de convocation ou de refus personnalisés.
 - **📝 Formulaires Intelligents** : Création de questionnaires de pré-qualification.
 
@@ -114,12 +108,33 @@ streamlit run app.py
 ## 🏗️ Architecture des Dossiers
 
 ```text
-agents/
-├── core/           # Orchestrateur, Compréhension, Audio
-├── entrepreneur/   # Agents Recruteur (Post, Email, Scoring)
-└── student/        # Système Multi-Agents Candidat (Scraper, Matcher)
-    ├── tools/      # Scrapers (LinkedIn, WWR, RemoteOK)
-    └── interface.py # Dashboard Étudiant
+AgenticHire/
+├── app.py                  # Point d'entrée principal (Streamlit)
+├── cli_main.py             # Interface CLI (Legacy)
+├── requirements.txt        # Dépendances Python
+├── agents/
+│   ├── core/
+│   │   ├── orchestrator.py     # Chef d'orchestre (routing des agents)
+│   │   ├── comprehension/      # Analyse d'intention (NLP)
+│   │   └── audio/              # Transcription vocale (Whisper)
+│   ├── entrepreneur/           # Espace Recruteur
+│   │   ├── recruiter_agents.py      # Agents IA (Job Description, LinkedIn, CV Scoring, Email)
+│   │   ├── recruiter_interface.py   # Dashboard Recruteur (Streamlit)
+│   │   ├── agent_linkedin_post.py   # Génération de posts LinkedIn
+│   │   ├── analysis/                # Analyse & scoring de candidatures
+│   │   └── communication/           # Emails automatisés (convocation/refus)
+│   └── student/
+│       ├── multi_agent_system.py    # Système Multi-Agents (7 agents)
+│       ├── interface.py             # Dashboard Étudiant
+│       ├── agent_student.py         # Agent principal Étudiant
+│       └── tools/                   # Scrapers (LinkedIn, WWR, RemoteOK)
+├── config/                 # Configuration (settings.py)
+├── models/                 # Schémas de données (Pydantic)
+├── services/               # Services (Authentification)
+├── utils/                  # Utilitaires (Client DeepSeek, Logger)
+├── data/                   # Données persistantes (utilisateurs, candidatures)
+├── scripts/                # Scripts de déploiement (GitHub push)
+└── tests/                  # Tests unitaires et de sortie
 ```
 
 ---
