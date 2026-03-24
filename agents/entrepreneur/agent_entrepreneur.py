@@ -3,7 +3,6 @@ import os
 import streamlit as st
 from datetime import datetime
 from agents.entrepreneur.agent_linkedin_post import AgentLinkedInPost
-from agents.entrepreneur.analysis.agent_scoring import AgentCandidateScoring
 from agents.entrepreneur.communication.agent_email import AgentEmail
 
 class AgentEntrepreneur:
@@ -15,7 +14,6 @@ class AgentEntrepreneur:
 
     def __init__(self):
         self.agent_linkedin = AgentLinkedInPost()
-        self.agent_scoring = AgentCandidateScoring()
         self.agent_email = AgentEmail()
         
         # URL de base de l'application Streamlit (à configurer selon déploiement)
@@ -68,9 +66,11 @@ class AgentEntrepreneur:
         if not candidats:
             return None
 
-        # 2. Scoring
-        candidats_scores = self.agent_scoring.analyser_candidats(candidats)
-        
+        # 2. Scoring (Legacy scoring removed, default to 0)
+        candidats_scores = candidats
+        for c in candidats_scores:
+            c['score'] = 0
+            
         # 3. Filtrer les meilleurs (ex: Score > 75)
         top_candidats = [c for c in candidats_scores if c.get('score', 0) >= 75]
         
