@@ -1,4 +1,4 @@
-streamlit
+
 pandas
 python-dotenv
 requests
@@ -7,7 +7,7 @@ pydantic
 tenacity
 huggingface_hub
 striprtf
-pypdf2
+
 openai
 plotly
 pypdf
