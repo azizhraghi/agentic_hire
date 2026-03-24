@@ -48,5 +48,25 @@
     "tel": "22224444",
     "cv_text": "",
     "has_file": true
+  },
+  {
+    "offer_id": "OFF-1772578137",
+    "date": "2026-03-03 23:49:56",
+    "nom": "aziz",
+    "prenom": "aziz",
+    "email": "aziz@gmail.com",
+    "tel": "222244444",
+    "cv_text": "",
+    "has_file": true
+  },
+  {
+    "offer_id": "OFF-1772578137",
+    "date": "2026-03-03 23:50:39",
+    "nom": "test",
+    "prenom": "test",
+    "email": "test@gmail.com",
+    "tel": "22447788",
+    "cv_text": "",
+    "has_file": true
   }
 ]

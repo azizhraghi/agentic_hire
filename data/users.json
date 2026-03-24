@@ -34,5 +34,23 @@
     "email": null,
     "company_name": null,
     "school_name": null
+  },
+  {
+    "id": "ef6869ea-477e-4927-bfaf-a6e7b2bd3611",
+    "username": "demo",
+    "password_hash": "d3ad9315b7be5dd53b31a273b3b3aba5defe700808305aa16a3062b76658a791",
+    "role": "USER",
+    "email": null,
+    "company_name": null,
+    "school_name": null
+  },
+  {
+    "id": "0fe0462d-0044-4a8e-83eb-64fbd0f5b6a4",
+    "username": "hraghi",
+    "password_hash": "fceff997b6e5d2ebd4877315d1ab500566aae83c8519108b14885c0fbd2543a6",
+    "role": "USER",
+    "email": "hraghi@gmail.com",
+    "company_name": null,
+    "school_name": null
   }
 ]

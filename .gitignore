@@ -14,8 +14,17 @@ env/
 # IDEs
 .vscode/
 .idea/
+*.swp
 
 # Data files
-data/extraction_results.json
 data/*_data.json
 *.log
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+# OS
+Thumbs.db
+.DS_Store
