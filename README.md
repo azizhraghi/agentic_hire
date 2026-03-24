@@ -48,8 +48,8 @@ L'application détecte automatiquement votre rôle (via NLP) et active les agent
 
 - **Interface** : [Streamlit](https://streamlit.io/) (Python)
 - **LLM & IA** : 
-  - **DeepSeek V3** (Cerveau central)
-  - **HuggingFace** (Modèles open-source pour tâches spécifiques)
+  
+
   - **Mistral AI** (Support Multi-Agent)
 - **Orchestration** : Architecture modulaire personnalisée
 - **Scraping** : Beautiful Soup 4, Requests (avec rotation d'User-Agents)

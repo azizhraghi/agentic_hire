@@ -11,3 +11,5 @@ pypdf2
 openai
 plotly
 pypdf
+python-jobspy
+feedparser

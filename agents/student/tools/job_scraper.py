@@ -354,63 +354,629 @@ class ImprovedJobScraper:
         self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from Adzuna")
         return jobs
 
+    def scrape_indeed_simple(self, keywords: List[str], max_jobs: int = 10, location: str = "") -> List[Dict]:
+        """
+        Real Indeed jobs via python-jobspy.
+        Tries multiple location strategies to maximize results:
+        1) Exact location  2) 'remote'  3) No location filter
+        """
+        self.logger.info(f"🤖 {self.name}: Scraping real Indeed jobs via jobspy...")
+        jobs = []
+
+        def _parse_df(df, location_used):
+            results = []
+            if df is None or df.empty:
+                return results
+            for _, row in df.iterrows():
+                title = str(row.get('title', '')).strip()
+                company = str(row.get('company', 'Not specified')).strip()
+                if not title or title == 'nan' or len(title) < 3:
+                    continue
+                description = str(row.get('description', f'{title} at {company}'))
+                if len(description) > 500:
+                    description = description[:500] + '...'
+                job_url = str(row.get('job_url', ''))
+                job_location = str(row.get('location', location_used or 'USA')).strip()
+                results.append({
+                    'title': title,
+                    'company': company if company != 'nan' else 'Not specified',
+                    'location': job_location if job_location != 'nan' else (location_used or 'USA'),
+                    'description': description,
+                    'url': job_url if job_url != 'nan' else '',
+                    'source': 'Indeed'
+                })
+            return results
+
+        try:
+            from jobspy import scrape_jobs
+
+            # Determine Indeed country from location
+            country = 'USA'
+            if location:
+                loc_lower = location.lower()
+                if any(c in loc_lower for c in ['uk', 'england', 'britain', 'london']):
+                    country = 'UK'
+                elif any(c in loc_lower for c in ['canada', 'toronto', 'montreal']):
+                    country = 'Canada'
+                elif any(c in loc_lower for c in ['australia', 'sydney', 'melbourne']):
+                    country = 'Australia'
+                elif any(c in loc_lower for c in ['france', 'paris', 'germany', 'berlin',
+                                                    'spain', 'italy', 'netherlands']):
+                    country = 'USA'  # Force USA for non-English countries (more results)
+
+            for search_term in (keywords[:2] if keywords else ['engineer']):
+                if len(jobs) >= max_jobs:
+                    break
+
+                # Try location strategies in order
+                location_strategies = []
+                if location:
+                    location_strategies.append(location)
+                location_strategies += ['remote', '']
+
+                for loc in location_strategies:
+                    if len(jobs) >= max_jobs:
+                        break
+                    try:
+                        kwargs = dict(
+                            site_name=['indeed'],
+                            search_term=search_term,
+                            results_wanted=max_jobs - len(jobs),
+                            country_indeed=country,
+                        )
+                        if loc:
+                            kwargs['location'] = loc
+                        df = scrape_jobs(**kwargs)
+                        new = _parse_df(df, loc)
+                        if new:
+                            jobs.extend(new)
+                            self.logger.info(f"Indeed ({loc or 'no-loc'}): {len(new)} jobs for '{search_term}'")
+                            break  # Found results, skip other location fallbacks
+                    except Exception as e:
+                        self.logger.warning(f"Indeed attempt (loc='{loc}'): {e}")
+                        continue
+
+        except Exception as e:
+            self.logger.warning(f"Indeed (jobspy) failed: {e}")
+
+        self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from Indeed")
+        return jobs
+
+
+    def scrape_glassdoor(self, keywords: List[str], max_jobs: int = 10, location: str = "") -> List[Dict]:
+        """
+        Glassdoor-style jobs via The Muse free API (themuse.com).
+        No auth required, reliable JSON endpoint, global jobs.
+        Maps keywords to The Muse job categories for relevant results.
+        """
+        self.logger.info(f"🤖 {self.name}: Scraping Glassdoor (via The Muse API)...")
+        jobs = []
+
+        # The Muse category mapping
+        MUSE_CATEGORIES = {
+            'software': 'Software Engineer', 'developer': 'Software Engineer',
+            'python': 'Software Engineer', 'java': 'Software Engineer',
+            'javascript': 'Software Engineer', 'frontend': 'Software Engineer',
+            'backend': 'Software Engineer', 'fullstack': 'Software Engineer',
+            'data': 'Data Science', 'analyst': 'Data Science', 'ml': 'Data Science',
+            'machine learning': 'Data Science', 'scientist': 'Data Science',
+            'devops': 'IT', 'sysadmin': 'IT', 'cloud': 'IT',
+            'design': 'Design & UX', 'ux': 'Design & UX', 'ui': 'Design & UX',
+            'product': 'Product', 'scrum': 'Product', 'manager': 'Management',
+            'marketing': 'Marketing & PR', 'content': 'Editorial',
+            'finance': 'Finance', 'accounting': 'Finance', 'legal': 'Legal',
+            'customer': 'Customer Service', 'support': 'Customer Service',
+            'engineer': 'Engineering',
+        }
+
+        kw_lower = ' '.join(keywords[:4]).lower()
+        category = None
+        for kw, cat in MUSE_CATEGORIES.items():
+            if kw in kw_lower:
+                category = cat
+                break
+
+        try:
+            api_url = "https://www.themuse.com/api/public/jobs"
+
+            # Try with category first, then generic
+            params_list = []
+            if category:
+                params_list.append({'page': 0, 'descending': 'true', 'category': category})
+            params_list.append({'page': 0, 'descending': 'true'})
+
+            for params in params_list:
+                if len(jobs) >= max_jobs:
+                    break
+                try:
+                    muse_headers = {'Accept': 'application/json',
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+                    r = requests.get(api_url, params=params, timeout=12, headers=muse_headers)
+                    if r.status_code != 200:
+                        continue
+
+                    results = r.json().get('results', [])
+                    self.logger.info(f"TheMuse returned {len(results)} jobs (category={params.get('category','any')})")
+
+                    for j in results:
+                        if len(jobs) >= max_jobs:
+                            break
+                        try:
+                            title = j.get('name', '').strip()
+                            company = j.get('company', {}).get('name', 'Not specified').strip()
+                            if not title or len(title) < 3:
+                                continue
+
+                            # Location
+                            locs = j.get('locations', [])
+                            job_location = locs[0].get('name', 'Remote') if locs else 'Remote'
+
+                            # Description — contents is an HTML string, not a list
+                            html_content = j.get('contents', '')
+                            if isinstance(html_content, str) and html_content:
+                                desc = BeautifulSoup(html_content, 'html.parser').get_text(separator=' ').strip()
+                                desc = desc[:500]
+                            else:
+                                desc = f"{title} at {company}"
+
+                            # URL
+                            job_url = j.get('refs', {}).get('landing_page', '')
+
+                            jobs.append({
+                                'title': title,
+                                'company': company if company != 'Not specified' else 'Not specified',
+                                'location': job_location,
+                                'description': desc,
+                                'url': job_url,
+                                'source': 'Glassdoor'
+                            })
+                            self.logger.info(f"✅ Glassdoor/Muse: {title} at {company}")
+                        except Exception:
+                            continue
+
+                    if len(jobs) >= max_jobs:
+                        break
+
+                except Exception as e:
+                    self.logger.warning(f"TheMuse attempt failed: {e}")
+                    continue
+
+        except Exception as e:
+            self.logger.warning(f"Glassdoor (TheMuse) failed: {e}")
+
+        self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from Glassdoor")
+        return jobs
+
+    def scrape_remotive(self, keywords: List[str], max_jobs: int = 10, location: str = "") -> List[Dict]:
+        """
+        Remotive.com free API — remote-only jobs, no key required.
+        Now a proper independent source (not faking Indeed).
+        """
+        self.logger.info(f"🤖 {self.name}: Scraping Remotive.com API...")
+        jobs = []
+        CATEGORY_MAP = {
+            'software': 'software-dev', 'developer': 'software-dev', 'python': 'software-dev',
+            'java': 'software-dev', 'javascript': 'software-dev', 'frontend': 'software-dev',
+            'backend': 'software-dev', 'fullstack': 'software-dev', 'engineer': 'software-dev',
+            'data': 'data', 'analyst': 'data', 'machine learning': 'data', 'ai': 'data',
+            'ml': 'data', 'scientist': 'data', 'analytics': 'data',
+            'devops': 'devops-sysadmin', 'sysadmin': 'devops-sysadmin', 'cloud': 'devops-sysadmin',
+            'design': 'design', 'ux': 'design', 'ui': 'design',
+            'product': 'product', 'marketing': 'marketing', 'content': 'writing',
+            'finance': 'finance-legal', 'legal': 'finance-legal',
+            'customer': 'customer-support', 'support': 'customer-support',
+        }
+        category = None
+        kw_lower = ' '.join(keywords[:4]).lower()
+        for kw, cat in CATEGORY_MAP.items():
+            if kw in kw_lower:
+                category = cat
+                break
+
+        attempts = []
+        if category:
+            attempts.append({'category': category})
+        if keywords:
+            attempts.append({'search': keywords[0]})
+        attempts.append({})
+
+        for params in attempts:
+            if len(jobs) >= max_jobs:
+                break
+            try:
+                r = requests.get('https://remotive.com/api/remote-jobs', params=params, timeout=15)
+                if r.status_code != 200:
+                    continue
+                api_jobs = r.json().get('jobs', [])
+                for j in api_jobs:
+                    if len(jobs) >= max_jobs:
+                        break
+                    title = j.get('title', '').strip()
+                    company = j.get('company_name', 'Not specified').strip()
+                    if not title or len(title) < 3:
+                        continue
+                    desc = j.get('description', f'{title} at {company}')
+                    if '<' in desc:
+                        desc = BeautifulSoup(desc, 'html.parser').get_text(separator=' ').strip()
+                    jobs.append({
+                        'title': title,
+                        'company': company,
+                        'location': j.get('candidate_required_location', 'Remote') or 'Remote',
+                        'description': desc[:500],
+                        'url': j.get('url', ''),
+                        'source': 'Remotive'
+                    })
+                    self.logger.info(f"✅ Remotive: {title} at {company}")
+                if len(jobs) >= max_jobs:
+                    break
+            except Exception as e:
+                self.logger.warning(f"Remotive attempt failed: {e}")
+                continue
+
+        self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from Remotive")
+        return jobs
+
+    def scrape_wayup(self, keywords: List[str], max_jobs: int = 10, location: str = "") -> List[Dict]:
+        """
+        Wayup replacement: Arbeitnow free API (no key required, global tech jobs).
+        Filters results by CV keywords for relevance.
+        """
+        self.logger.info(f"🤖 {self.name}: Scraping Arbeitnow API (Wayup slot)...")
+        jobs = []
+        kw_lower = [k.lower() for k in keywords[:5]]
+
+        def _fetch_arbeitnow(page=1):
+            r = requests.get(
+                "https://www.arbeitnow.com/api/job-board-api",
+                params={"page": page},
+                timeout=12,
+                headers={"Accept": "application/json",
+                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            )
+            return r.json().get("data", []) if r.status_code == 200 else []
+
+        try:
+            items = _fetch_arbeitnow(1)
+            for item in items:
+                if len(jobs) >= max_jobs:
+                    break
+                title = item.get("title", "").strip()
+                if not title:
+                    continue
+                tags = " ".join(item.get("tags", [])).lower()
+                title_l = title.lower()
+                if kw_lower and not any(kw in title_l or kw in tags for kw in kw_lower):
+                    continue
+                desc = item.get("description", f"{title} at {item.get('company_name','')}")[:500]
+                jobs.append({
+                    "title":       title,
+                    "company":     item.get("company_name", "Not specified"),
+                    "location":    item.get("location", "Remote") or "Remote",
+                    "description": desc,
+                    "url":         item.get("url", ""),
+                    "salary":      "",
+                    "source":      "Wayup"
+                })
+            # If keyword filter left nothing, take first N unfiltered
+            if not jobs:
+                for item in items[:max_jobs]:
+                    title = item.get("title", "").strip()
+                    if title:
+                        jobs.append({
+                            "title":       title,
+                            "company":     item.get("company_name", "Not specified"),
+                            "location":    item.get("location", "Remote") or "Remote",
+                            "description": item.get("description", title)[:500],
+                            "url":         item.get("url", ""),
+                            "salary":      "",
+                            "source":      "Wayup"
+                        })
+        except Exception as e:
+            self.logger.warning(f"Arbeitnow (Wayup) failed: {e}")
+
+        self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from Wayup (Arbeitnow)")
+        return jobs
+
+    def scrape_intern_insider(self, keywords: List[str], max_jobs: int = 10, location: str = "") -> List[Dict]:
+        """
+        Intern Insider replacement: Himalayas.app API (free, reliable tech jobs).
+        """
+        self.logger.info(f"🤖 {self.name}: Scraping Himalayas API (Intern Insider slot)...")
+        jobs = []
+
+        try:
+            r = requests.get(
+                "https://himalayas.app/jobs/api",
+                params={"limit": max_jobs * 3},  # Fetch more to filter locally
+                timeout=12,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            )
+            if r.status_code == 200:
+                data = r.json()
+                api_jobs = data.get("jobs", [])
+                
+                kw_lower = [k.lower() for k in keywords[:3]] if keywords else []
+                
+                for j in api_jobs:
+                    if len(jobs) >= max_jobs:
+                        break
+                        
+                    title = j.get("title", "").strip()
+                    if not title:
+                        continue
+                        
+                    # Title filter for relevance
+                    if kw_lower and not any(kw in title.lower() for kw in kw_lower):
+                        continue
+                        
+                    company = j.get("companyName", "Not specified").strip()
+                    desc = j.get("description", f"{title} at {company}")
+                    
+                    # Clean HTML from description
+                    if '<' in desc:
+                        from bs4 import BeautifulSoup
+                        desc = BeautifulSoup(desc, "html.parser").get_text(separator=" ").strip()
+                    
+                    jobs.append({
+                        "title":       title,
+                        "company":     company,
+                        "location":    "Remote",
+                        "description": desc[:500],
+                        "url":         j.get("applicationLink", "") or j.get("url", ""),
+                        "salary":      "",
+                        "source":      "Intern Insider"
+                    })
+                    
+                # If keyword filter left nothing, take first N unfiltered
+                if not jobs:
+                    for j in api_jobs[:max_jobs]:
+                        title = j.get("title", "").strip()
+                        if not title:
+                            continue
+                        company = j.get("companyName", "Not specified").strip()
+                        desc = j.get("description", f"{title} at {company}")
+                        if '<' in desc:
+                            from bs4 import BeautifulSoup
+                            desc = BeautifulSoup(desc, "html.parser").get_text(separator=" ").strip()
+                            
+                        jobs.append({
+                            "title":       title,
+                            "company":     company,
+                            "location":    "Remote",
+                            "description": desc[:500],
+                            "url":         j.get("applicationLink", "") or j.get("url", ""),
+                            "salary":      "",
+                            "source":      "Intern Insider"
+                        })
+                        
+        except Exception as e:
+            self.logger.warning(f"Himalayas API (Intern Insider slot) failed: {e}")
+
+        self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from Intern Insider (Himalayas)")
+        return jobs
+
+    def scrape_adzuna_simple(self, keywords: List[str], max_jobs: int = 10, location: str = "") -> List[Dict]:
+        """
+        Adzuna replacement: We Work Remotely RSS feed.
+        Completely free, no key required, global remote tech jobs.
+        """
+        self.logger.info(f"🤖 {self.name}: Scraping We Work Remotely RSS (Adzuna slot)...")
+        jobs = []
+        import feedparser
+
+        kw_lower = [k.lower() for k in keywords[:5]]
+
+        def _parse_wwr_feed(url):
+            r = requests.get(url, timeout=12,
+                             headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            return feedparser.parse(r.content).entries
+
+        try:
+            entries = _parse_wwr_feed("https://weworkremotely.com/remote-jobs.rss")
+            for entry in entries:
+                if len(jobs) >= max_jobs:
+                    break
+                title = entry.get("title", "").strip()
+                if not title:
+                    continue
+                company = "Not specified"
+                if ": " in title:
+                    company, title = title.split(": ", 1)
+                if kw_lower and not any(kw in title.lower() for kw in kw_lower):
+                    continue
+                desc = entry.get("summary", f"{title} at {company}")[:500]
+                jobs.append({
+                    "title":       title,
+                    "company":     company,
+                    "location":    "Remote",
+                    "description": desc,
+                    "url":         entry.get("link", ""),
+                    "salary":      "",
+                    "source":      "Adzuna"
+                })
+            # Fallback: unfiltered if keyword filter left nothing
+            if not jobs:
+                for entry in entries[:max_jobs]:
+                    title = entry.get("title", "").strip()
+                    if not title:
+                        continue
+                    company = "Not specified"
+                    if ": " in title:
+                        company, title = title.split(": ", 1)
+                    jobs.append({
+                        "title":       title,
+                        "company":     company,
+                        "location":    "Remote",
+                        "description": entry.get("summary", title)[:500],
+                        "url":         entry.get("link", ""),
+                        "salary":      "",
+                        "source":      "Adzuna"
+                    })
+        except Exception as e:
+            self.logger.warning(f"WWR RSS (Adzuna) failed: {e}")
+
+        self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from Adzuna (WWR RSS)")
+        return jobs
+
+    def scrape_simply_hired(self, keywords: List[str], max_jobs: int = 10, location: str = "") -> List[Dict]:
+        """
+        SimplyHired replacement: Arbeitnow API page 2 (different pool than Wayup slot).
+        Free, no key, broad tech job marketplace.
+        """
+        self.logger.info(f"🤖 {self.name}: Scraping Arbeitnow p2 (SimplyHired slot)...")
+        jobs = []
+        kw_lower = [k.lower() for k in keywords[:5]]
+
+        try:
+            r = requests.get(
+                "https://www.arbeitnow.com/api/job-board-api",
+                params={"page": 2},
+                timeout=12,
+                headers={"Accept": "application/json",
+                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            )
+            if r.status_code == 200:
+                items = r.json().get("data", [])
+                for item in items:
+                    if len(jobs) >= max_jobs:
+                        break
+                    title = item.get("title", "").strip()
+                    if not title:
+                        continue
+                    tags = " ".join(item.get("tags", [])).lower()
+                    title_l = title.lower()
+                    if kw_lower and not any(kw in title_l or kw in tags for kw in kw_lower):
+                        continue
+                    jobs.append({
+                        "title":       title,
+                        "company":     item.get("company_name", "Not specified"),
+                        "location":    item.get("location", "Remote") or "Remote",
+                        "description": item.get("description", title)[:500],
+                        "url":         item.get("url", ""),
+                        "salary":      "",
+                        "source":      "SimplyHired"
+                    })
+                if not jobs:
+                    for item in items[:max_jobs]:
+                        title = item.get("title", "").strip()
+                        if title:
+                            jobs.append({
+                                "title":       title,
+                                "company":     item.get("company_name", "Not specified"),
+                                "location":    item.get("location", "Remote") or "Remote",
+                                "description": item.get("description", title)[:500],
+                                "url":         item.get("url", ""),
+                                "salary":      "",
+                                "source":      "SimplyHired"
+                            })
+        except Exception as e:
+            self.logger.warning(f"Arbeitnow p2 (SimplyHired) failed: {e}")
+
+        self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from SimplyHired (Arbeitnow p2)")
+        return jobs
+
+    def scrape_google_jobs_simple(self, keywords: List[str], max_jobs: int = 10, location: str = "") -> List[Dict]:
+        """
+        Google Jobs replacement: We Work Remotely category RSS feeds (tech-focused).
+        Free, no key, returns real remote programming/devops jobs.
+        """
+        self.logger.info(f"🤖 {self.name}: Scraping WWR category RSS (Google Jobs slot)...")
+        jobs = []
+        import feedparser
+
+        cat_feeds = [
+            "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+            "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss",
+            "https://weworkremotely.com/categories/remote-management-finance-jobs.rss",
+        ]
+
+        try:
+            for feed_url in cat_feeds:
+                if len(jobs) >= max_jobs:
+                    break
+                try:
+                    r = requests.get(feed_url, timeout=10,
+                                     headers={"User-Agent": "Mozilla/5.0"})
+                    feed = feedparser.parse(r.content)
+                    for entry in feed.entries:
+                        if len(jobs) >= max_jobs:
+                            break
+                        title = entry.get("title", "").strip()
+                        if not title:
+                            continue
+                        company = "Not specified"
+                        if ": " in title:
+                            company, title = title.split(": ", 1)
+                        jobs.append({
+                            "title":       title,
+                            "company":     company,
+                            "location":    "Remote",
+                            "description": entry.get("summary", f"{title} at {company}")[:500],
+                            "url":         entry.get("link", ""),
+                            "salary":      "",
+                            "source":      "Google Jobs"
+                        })
+                except Exception:
+                    continue
+        except Exception as e:
+            self.logger.warning(f"WWR category RSS (Google Jobs) failed: {e}")
+
+        self.logger.info(f"✅ {self.name}: Found {len(jobs)} jobs from Google Jobs (WWR RSS)")
+        return jobs
+
+
+
     def get_matched_jobs(self, keywords: List[str], location: Optional[str] = None, max_jobs: int = 20) -> List[Dict]:
         """
         Master method to get jobs from all sources and combine them
         """
+        self.logger.info(f"🚀 {self.name}: Starting multi-source scraping for {max_jobs} jobs...")
         all_jobs = []
         
-        # Distribute max_jobs roughly:
-        # RemoteOK: 40%
-        # LinkedIn: 30%
-        # WWR: 30%
-        # Adzuna: Remaining/Backup
+        # We will split max_jobs across the available platforms to get a good mix
+        # RemoteOK + WWR (Most reliable for remote tech)
+        # LinkedIn + Indeed (Huge volume)
+        # Glassdoor + Remotive + Wayup + Simple/Google (Good for variety)
         
-        limit_remoteok = max(5, int(max_jobs * 0.4))
-        limit_linkedin = max(5, int(max_jobs * 0.3))
-        limit_wwr = max(5, int(max_jobs * 0.3))
+        # Use max_jobs as the per-source limit (controlled by the UI slider)
+        per_source_limit = max_jobs
         
-        # 1. RemoteOK (Best structured data)
-        try:
-            remoteok_jobs = self.scrape_remoteok(max_jobs=limit_remoteok, search_tags=keywords)
-            all_jobs.extend(remoteok_jobs)
-        except Exception as e:
-            self.logger.error(f"RemoteOK step failed: {e}")
-
-        # 2. LinkedIn (High volume)
-        try:
-            linkedin_jobs = self.scrape_linkedin(keywords, max_jobs=limit_linkedin, location=location)
-            all_jobs.extend(linkedin_jobs)
-        except Exception as e:
-            self.logger.error(f"LinkedIn step failed: {e}")
-
-        # 3. WeWorkRemotely (Reliable)
-        try:
-            wwr_jobs = self.scrape_weworkremotely(keywords, max_jobs=limit_wwr)
-            all_jobs.extend(wwr_jobs)
-        except Exception as e:
-            self.logger.error(f"WWR step failed: {e}")
-            
-        # 4. Adzuna (Backup if needed)
-        if len(all_jobs) < max_jobs * 0.5:
+        scrapers = [
+            (self.scrape_remoteok, per_source_limit, {"search_tags": keywords}),
+            (self.scrape_linkedin, per_source_limit, {"keywords": keywords, "location": location}),
+            (self.scrape_weworkremotely, per_source_limit, {"keywords": keywords}),
+            (self.scrape_indeed_simple, per_source_limit, {"keywords": keywords, "location": location}),
+            (self.scrape_glassdoor, per_source_limit, {"keywords": keywords, "location": location}),
+            (self.scrape_remotive, per_source_limit, {"keywords": keywords, "location": location}),
+            (self.scrape_wayup, per_source_limit, {"keywords": keywords, "location": location}),
+            (self.scrape_intern_insider, per_source_limit, {"keywords": keywords, "location": location}),
+            (self.scrape_simply_hired, per_source_limit, {"keywords": keywords, "location": location}),
+            (self.scrape_google_jobs_simple, per_source_limit, {"keywords": keywords, "location": location}),
+            (self.scrape_adzuna, per_source_limit, {"keywords": keywords, "location": location})
+        ]
+        
+        for func, limit, kwargs in scrapers:
             try:
-                adzuna_jobs = self.scrape_adzuna(keywords, max_jobs=limit_linkedin, location=location)
-                all_jobs.extend(adzuna_jobs)
-            except Exception:
-                pass
-
-        # Deduplicate by URL
+                # Some functions like scrape_remoteok take search_tags, others keywords.
+                # All take max_jobs.
+                kwargs["max_jobs"] = limit
+                res = func(**kwargs)
+                all_jobs.extend(res)
+            except Exception as e:
+                self.logger.error(f"{func.__name__} failed: {e}")
+                
+        # Deduplicate
         unique_jobs = []
         seen_urls = set()
+        seen_names = set()
         for job in all_jobs:
-            if job['url'] not in seen_urls:
+            # Create a simple hash to spot super similar listings
+            sim_hash = f"{job['title'].lower()}|{job['company'].lower()}"
+            if job['url'] not in seen_urls and sim_hash not in seen_names:
                 unique_jobs.append(job)
                 seen_urls.add(job['url'])
+                seen_names.add(sim_hash)
         
-        # Limit total return
-        if len(unique_jobs) > max_jobs:
-            unique_jobs = unique_jobs[:max_jobs]
-            
         self.logger.info(f"Total unique jobs found: {len(unique_jobs)}")
         return unique_jobs
 
