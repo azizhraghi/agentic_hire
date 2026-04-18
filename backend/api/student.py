@@ -5,12 +5,12 @@ POST /api/student/search-jobs
 POST /api/student/generate-application
 """
 
-import os
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 
 from backend.api.deps import get_current_user
+from backend.api.dependencies import get_cv_analyzer, get_student_coordinator
 from models.user import User
 from agents.student.multi_agent_system import CVAnalyzerAgent, CoordinatorAgent
 
@@ -21,7 +21,6 @@ router = APIRouter(prefix="/api/student", tags=["Student"])
 
 class AnalyzeCVRequest(BaseModel):
     cv_text: str
-    api_key: Optional[str] = None
 
 class AnalyzeCVResponse(BaseModel):
     analysis: dict
@@ -34,43 +33,32 @@ class SearchJobsRequest(BaseModel):
     location: str = ""
     include_remote: bool = True
     selected_sources: Optional[List[str]] = None
-    api_key: Optional[str] = None
 
 class GenerateApplicationRequest(BaseModel):
     cv_text: str
     job: dict  # { title, company, location, description, ... }
-    api_key: Optional[str] = None
-
-
-# --- Helper ---
-
-def _get_api_key(provided_key: Optional[str] = None) -> str:
-    key = provided_key or os.getenv("MISTRAL_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not key:
-        raise HTTPException(status_code=400, detail="No AI API key configured.")
-    return key
 
 
 # --- Routes ---
 
 @router.post("/analyze-cv", response_model=AnalyzeCVResponse)
-def analyze_cv(req: AnalyzeCVRequest, current_user: User = Depends(get_current_user)):
+def analyze_cv(
+    req: AnalyzeCVRequest,
+    current_user: User = Depends(get_current_user),
+    analyzer: CVAnalyzerAgent = Depends(get_cv_analyzer),
+):
     """Analyze CV text and extract skills, experience, recommendations."""
-    api_key = _get_api_key(req.api_key)
-
-    analyzer = CVAnalyzerAgent(api_key=api_key, use_mistral=True)
     analysis = analyzer.analyze_cv(req.cv_text)
-
     return AnalyzeCVResponse(analysis=analysis)
 
 
 @router.post("/search-jobs")
-def search_jobs(req: SearchJobsRequest, current_user: User = Depends(get_current_user)):
+def search_jobs(
+    req: SearchJobsRequest,
+    current_user: User = Depends(get_current_user),
+    coordinator: CoordinatorAgent = Depends(get_student_coordinator),
+):
     """Run intelligent multi-source job search powered by AI agents."""
-    api_key = _get_api_key(req.api_key)
-
-    coordinator = CoordinatorAgent(api_key=api_key, use_mistral=True)
-
     jobs = coordinator.intelligent_job_search(
         cv_text=req.cv_text,
         jobs_per_site=req.jobs_per_site,
@@ -93,11 +81,12 @@ def search_jobs(req: SearchJobsRequest, current_user: User = Depends(get_current
 
 
 @router.post("/generate-application")
-def generate_application(req: GenerateApplicationRequest, current_user: User = Depends(get_current_user)):
+def generate_application(
+    req: GenerateApplicationRequest,
+    current_user: User = Depends(get_current_user),
+    coordinator: CoordinatorAgent = Depends(get_student_coordinator),
+):
     """Generate optimized CV, cover letter, and LinkedIn message for a specific job."""
-    api_key = _get_api_key(req.api_key)
-
-    coordinator = CoordinatorAgent(api_key=api_key, use_mistral=True)
     results = coordinator.run_full_pipeline(req.cv_text, req.job)
 
     return {

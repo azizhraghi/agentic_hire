@@ -1,7 +1,8 @@
 # 🤖 AgenticHire
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
-![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688)
+![React](https://img.shields.io/badge/React-Frontend-61DAFB)
 ![AI Agents](https://img.shields.io/badge/AI-Multi--Agent-orange)
 
 **AgenticHire** est une plateforme de recrutement de nouvelle génération, propulsée par un écosystème **Multi-Agents** (DeepSeek V3, Mistral, HuggingFace). 
@@ -9,6 +10,7 @@
 Elle réunit **Recruteurs** et **Étudiants/Candidats** dans une interface conversationnelle unifiée ("Chat-First"), automatisant l'intégralité du pipeline de recrutement et de recherche d'emploi.
 
 > 🚀 **Projet PFA** - Architecture Modulaire & Intelligence Artificielle de Pointe
+
 ## 👥 Équipe
 
 - **HAJJI Neyssem**
@@ -46,62 +48,105 @@ L'application détecte automatiquement votre rôle (via NLP) et active les agent
 
 ## 🛠️ Stack Technique
 
-- **Interface** : [Streamlit](https://streamlit.io/) (Python)
-- **LLM & IA** : 
-  
-
-  - **Mistral AI** (Support Multi-Agent)
-- **Orchestration** : Architecture modulaire personnalisée
-- **Scraping** : Beautiful Soup 4, Requests (avec rotation d'User-Agents)
-- **Audio** : Whisper (via HuggingFace) pour la transcription vocale
+| Couche | Technologie |
+|--------|-------------|
+| **Backend** | [FastAPI](https://fastapi.tiangolo.com/) (Python) |
+| **Frontend** | [React](https://react.dev/) + [Vite](https://vite.dev/) |
+| **LLM & IA** | Mistral AI, HuggingFace |
+| **Orchestration** | Architecture modulaire personnalisée |
+| **Scraping** | Beautiful Soup 4, python-jobspy, Requests |
+| **Base de données** | JSON (fichiers locaux) |
 
 ---
 
-## 🚀 Installation
+## 🚀 Installation & Lancement
+
+### Prérequis
+
+- **Python 3.9+** → [Télécharger](https://www.python.org/downloads/)
+- **Node.js 18+** → [Télécharger](https://nodejs.org/)
+- **Git** → [Télécharger](https://git-scm.com/)
 
 ### 1. Cloner le projet
+
 ```bash
 git clone https://github.com/azizhraghi/agentic_hire.git
-cd AgenticHire
+cd agentic_hire
 ```
 
-### 2. Environnement Virtuel
+### 2. Backend (FastAPI)
+
 ```bash
+# Créer un environnement virtuel
 python -m venv venv
-# Windows
-.\venv\Scripts\activate
+
+# Activer l'environnement virtuel
+# Windows (PowerShell)
+.\venv\Scripts\Activate.ps1
+# Windows (CMD)
+.\venv\Scripts\activate.bat
 # Mac/Linux
 source venv/bin/activate
-```
 
-### 3. Installation des dépendances
-```bash
+# Installer les dépendances Python
 pip install -r requirements.txt
 ```
 
+### 3. Frontend (React + Vite)
+
+```bash
+# Dans un nouveau terminal
+cd frontend
+
+# Installer les dépendances Node
+npm install
+```
+
 ### 4. Configuration
-Créez un fichier `.env` à la racine :
+
+Créez un fichier `.env` à la racine du projet :
+
 ```env
 # Clés API requises
+MISTRAL_API_KEY=votre_cle_mistral
+
+# Optionnel
 DEEPSEEK_API_KEY=votre_cle_deepseek
 HUGGINGFACE_TOKEN=votre_token_hf
-# Optionnel
-MISTRAL_API_KEY=votre_cle_mistral
 ```
+
+### 5. Lancer l'application
+
+Vous devez lancer **2 terminaux** :
+
+**Terminal 1 — Backend :**
+```bash
+# Depuis la racine du projet (avec le venv activé)
+uvicorn backend.main:app --reload --port 8000
+```
+
+**Terminal 2 — Frontend :**
+```bash
+# Depuis le dossier frontend
+cd frontend
+npm run dev
+```
+
+L'application sera accessible sur :
+- 🖥️ **Frontend** : `http://localhost:5173`
+- ⚙️ **API Backend** : `http://localhost:8000`
+- 📚 **API Docs** : `http://localhost:8000/docs`
 
 ---
 
-## ▶️ Utilisation
+## ⚠️ Erreurs Courantes
 
-Lancez simplement l'application :
-```bash
-streamlit run app.py
-```
-
-1. **Authentification** : Créez un compte ou connectez-vous.
-2. **Chat-First** : Parlez naturellement à l'IA.
-   - *"Je cherche un développeur React senior"* 👉 Active l'Agent Recruteur
-   - *"Trouve-moi un stage en IA à Paris"* 👉 Active l'Agent Candidat
+| Erreur | Solution |
+|--------|----------|
+| `uvicorn : terme non reconnu` | Activez le venv puis faites `pip install -r requirements.txt` |
+| `npm: command not found` | Installez [Node.js](https://nodejs.org/) |
+| `Module not found` (Python) | Vérifiez que le venv est activé (`pip list` pour vérifier) |
+| `CORS error` dans le navigateur | Assurez-vous que le backend tourne sur le port 8000 |
 
 ---
 
@@ -109,32 +154,29 @@ streamlit run app.py
 
 ```text
 AgenticHire/
-├── app.py                  # Point d'entrée principal (Streamlit)
-├── cli_main.py             # Interface CLI (Legacy)
-├── requirements.txt        # Dépendances Python
-├── agents/
-│   ├── core/
-│   │   ├── orchestrator.py     # Chef d'orchestre (routing des agents)
-│   │   ├── comprehension/      # Analyse d'intention (NLP)
-│   │   └── audio/              # Transcription vocale (Whisper)
-│   ├── entrepreneur/           # Espace Recruteur
-│   │   ├── recruiter_agents.py      # Agents IA (Job Description, LinkedIn, CV Scoring, Email)
-│   │   ├── recruiter_interface.py   # Dashboard Recruteur (Streamlit)
-│   │   ├── agent_linkedin_post.py   # Génération de posts LinkedIn
-│   │   ├── analysis/                # Analyse & scoring de candidatures
-│   │   └── communication/           # Emails automatisés (convocation/refus)
-│   └── student/
-│       ├── multi_agent_system.py    # Système Multi-Agents (7 agents)
-│       ├── interface.py             # Dashboard Étudiant
-│       ├── agent_student.py         # Agent principal Étudiant
-│       └── tools/                   # Scrapers (LinkedIn, WWR, RemoteOK)
+├── backend/                # API FastAPI
+│   ├── main.py             # Point d'entrée FastAPI
+│   ├── routes/             # Endpoints API
+│   └── ...
+├── frontend/               # Application React + Vite
+│   ├── src/
+│   │   ├── App.jsx         # Composant principal
+│   │   ├── pages/          # Pages de l'application
+│   │   └── components/     # Composants réutilisables
+│   └── package.json
+├── agents/                 # Agents IA
+│   ├── core/               # Orchestrateur & compréhension
+│   ├── entrepreneur/       # Agents Recruteur
+│   └── student/            # Agents Candidat
 ├── config/                 # Configuration (settings.py)
 ├── models/                 # Schémas de données (Pydantic)
 ├── services/               # Services (Authentification)
-├── utils/                  # Utilitaires (Client DeepSeek, Logger)
-├── data/                   # Données persistantes (utilisateurs, candidatures)
-├── scripts/                # Scripts de déploiement (GitHub push)
-└── tests/                  # Tests unitaires et de sortie
+├── utils/                  # Utilitaires (Logger, Clients API)
+├── data/                   # Données persistantes
+├── scripts/                # Scripts utilitaires
+├── tests/                  # Tests unitaires
+├── requirements.txt        # Dépendances Python
+└── .env                    # Variables d'environnement (non versionné)
 ```
 
 ---

@@ -1,15 +1,30 @@
+# === Core Framework ===
+fastapi
+uvicorn[standard]
+pyjwt
+python-multipart
+httpx
 
+# === Security ===
+bcrypt
+
+# === Data & Parsing ===
 pandas
+pydantic
 python-dotenv
 requests
 beautifulsoup4
-pydantic
-tenacity
-huggingface_hub
+pypdf
 striprtf
 
+# === AI / ML ===
 openai
-plotly
-pypdf
+huggingface_hub
+tenacity
+
+# === Scraping ===
 python-jobspy
 feedparser
+
+# === Visualization ===
+plotly

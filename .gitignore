@@ -17,7 +17,8 @@ env/
 *.swp
 
 # Data files
-data/*.json
+data/
+*.db
 *.log
 
 # Node / Frontend

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { studentAPI, uploadPDF } from "../api";
+import { studentAPI, uploadPDF, dispatchToast } from "../api";
 
 const ALL_SOURCES = [
   { id: "LinkedIn", color: "#0077B5", icon: "🔗" },
@@ -70,8 +70,9 @@ export default function StudentDashboard() {
       try {
         const data = await uploadPDF(file);
         setCvText(data.text);
-      } catch (err) {
-        alert("Erreur lors de l'extraction: " + err.message);
+        dispatchToast("PDF chargé avec succès !", "success", 3000);
+      } catch {
+        // Error already dispatched as toast via api.js
       } finally {
         setLoading(false);
         setLoadingMsg("");
@@ -89,9 +90,10 @@ export default function StudentDashboard() {
     try {
       const data = await studentAPI.analyzeCV(cvText);
       setCvAnalysis(data.analysis);
+      dispatchToast("Analyse CV terminée !", "success", 3000);
       setActiveTab("search");
-    } catch (err) {
-      alert("Erreur: " + err.message);
+    } catch {
+      // Error already dispatched as toast
     } finally {
       setLoading(false);
       setLoadingMsg("");
@@ -112,8 +114,9 @@ export default function StudentDashboard() {
       setJobs(data.jobs || []);
       setActiveSource("all");
       setActiveTab("results");
-    } catch (err) {
-      alert("Erreur: " + err.message);
+      dispatchToast(`${data.total || 0} offres trouvées !`, "success", 3000);
+    } catch {
+      // Error already dispatched as toast
     } finally {
       setLoading(false);
       setLoadingMsg("");
@@ -128,8 +131,9 @@ export default function StudentDashboard() {
       const data = await studentAPI.generateApplication(cvText, job);
       setAppResult(data);
       setActiveTab("application");
-    } catch (err) {
-      alert("Erreur: " + err.message);
+      dispatchToast("Dossier de candidature généré !", "success", 3000);
+    } catch {
+      // Error already dispatched as toast
     } finally {
       setLoading(false);
       setLoadingMsg("");
@@ -326,95 +330,124 @@ export default function StudentDashboard() {
           )}
 
           {/* RESULTS TAB */}
-          {activeTab === "results" && jobs && (
+          {activeTab === "results" && (
             <div>
-              <div className="metrics-grid">
-                <div className="glass-card metric-card">
-                  <div className="value">{totalJobs}</div>
-                  <div className="label">Total Jobs</div>
+              {!jobs ? (
+                /* Empty state — user clicked Results before search finished */
+                <div className="glass-card" style={{ padding: 48, textAlign: "center" }}>
+                  <div style={{ fontSize: "3rem", marginBottom: 16 }}>🔍</div>
+                  <h3 style={{ marginBottom: 8, color: "var(--text-primary)" }}>Aucun résultat pour le moment</h3>
+                  <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
+                    Lancez d'abord une recherche depuis l'onglet « Recherche » pour voir les offres ici.
+                  </p>
+                  <button className="btn btn-primary" onClick={() => setActiveTab("search")} disabled={!cvAnalysis}>
+                    🔍 Aller à la recherche
+                  </button>
                 </div>
-                <div className="glass-card metric-card">
-                  <div className="value">{sourceCount}</div>
-                  <div className="label">🌐 Sources</div>
+              ) : jobs.length === 0 ? (
+                /* Search ran but returned 0 results */
+                <div className="glass-card" style={{ padding: 48, textAlign: "center" }}>
+                  <div style={{ fontSize: "3rem", marginBottom: 16 }}>📭</div>
+                  <h3 style={{ marginBottom: 8, color: "var(--text-primary)" }}>Aucune offre trouvée</h3>
+                  <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
+                    Essayez d'activer plus de sources ou de modifier vos critères de recherche.
+                  </p>
+                  <button className="btn btn-primary" onClick={() => setActiveTab("search")}>
+                    🔧 Modifier la recherche
+                  </button>
                 </div>
-                <div className="glass-card metric-card">
-                  <div className="value">{highMatches}</div>
-                  <div className="label">🎯 High Match</div>
-                </div>
-                <div className="glass-card metric-card">
-                  <div className="value">{avgScore}%</div>
-                  <div className="label">📈 Score Moyen</div>
-                </div>
-              </div>
-
-              {/* Source Filter Pills */}
-              <div className="source-filters">
-                <button
-                  className={`source-pill ${activeSource === "all" ? "active" : ""}`}
-                  onClick={() => setActiveSource("all")}
-                >
-                  Toutes <span className="pill-count">{totalJobs}</span>
-                </button>
-                {Object.entries(sourceCounts)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([src, count]) => (
-                    <button
-                      key={src}
-                      className={`source-pill ${activeSource === src ? "active" : ""}`}
-                      onClick={() => setActiveSource(activeSource === src ? "all" : src)}
-                    >
-                      {src} <span className="pill-count">{count}</span>
-                    </button>
-                  ))}
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {[...displayedJobs].sort((a, b) => (b.ai_match_score || 0) - (a.ai_match_score || 0)).map((job, i) => {
-                  const score = job.ai_match_score || 0;
-                  const scoreClass = score >= 80 ? "score-high" : score >= 60 ? "score-medium" : "score-low";
-                  const matchResult = job.ai_analysis?.match_result || {};
-                  const source = job.source || "Unknown";
-                  const sourceClass = source.toLowerCase().replace(/[\s()]+/g, "");
-
-                  return (
-                    <div key={i} className="glass-card job-card">
-                      <div className="job-card-header">
-                        <div>
-                          <div className="job-title">
-                            {job.title || "N/A"}
-                            <span className={`source-badge source-${sourceClass}`}>{source}</span>
-                          </div>
-                          <div className="job-company">🏢 {job.company || "N/A"} — 📍 {job.location || "N/A"}</div>
-                        </div>
-                        <div className={`score-badge ${scoreClass}`}>{score}%</div>
-                      </div>
-
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                        {(matchResult.matching_skills || []).slice(0, 5).map((s, j) => (
-                          <span key={j} className="skill-tag">✅ {s}</span>
-                        ))}
-                        {(matchResult.missing_skills || []).slice(0, 3).map((s, j) => (
-                          <span key={`m${j}`} className="skill-tag" style={{ background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.2)", color: "var(--danger)" }}>❌ {s}</span>
-                        ))}
-                      </div>
-
-                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                        <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                          {matchResult.recommendation || job.ai_priority || ""}
-                        </span>
-                        <button className="btn btn-primary btn-sm" onClick={() => handleGenApp(job)}>
-                          ✍️ Générer Candidature
-                        </button>
-                        {job.url && job.url !== "#" && (
-                          <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
-                            🔗 Voir l'offre
-                          </a>
-                        )}
-                      </div>
+              ) : (
+                /* Normal results display */
+                <>
+                  <div className="metrics-grid">
+                    <div className="glass-card metric-card">
+                      <div className="value">{totalJobs}</div>
+                      <div className="label">Total Jobs</div>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="glass-card metric-card">
+                      <div className="value">{sourceCount}</div>
+                      <div className="label">🌐 Sources</div>
+                    </div>
+                    <div className="glass-card metric-card">
+                      <div className="value">{highMatches}</div>
+                      <div className="label">🎯 High Match</div>
+                    </div>
+                    <div className="glass-card metric-card">
+                      <div className="value">{avgScore}%</div>
+                      <div className="label">📈 Score Moyen</div>
+                    </div>
+                  </div>
+
+                  {/* Source Filter Pills */}
+                  <div className="source-filters">
+                    <button
+                      className={`source-pill ${activeSource === "all" ? "active" : ""}`}
+                      onClick={() => setActiveSource("all")}
+                    >
+                      Toutes <span className="pill-count">{totalJobs}</span>
+                    </button>
+                    {Object.entries(sourceCounts)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([src, count]) => (
+                        <button
+                          key={src}
+                          className={`source-pill ${activeSource === src ? "active" : ""}`}
+                          onClick={() => setActiveSource(activeSource === src ? "all" : src)}
+                        >
+                          {src} <span className="pill-count">{count}</span>
+                        </button>
+                      ))}
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {[...displayedJobs].sort((a, b) => (b.ai_match_score || 0) - (a.ai_match_score || 0)).map((job, i) => {
+                      const score = job.ai_match_score || 0;
+                      const scoreClass = score >= 80 ? "score-high" : score >= 60 ? "score-medium" : "score-low";
+                      const matchResult = job.ai_analysis?.match_result || {};
+                      const source = job.source || "Unknown";
+                      const sourceClass = source.toLowerCase().replace(/[\s()]+/g, "");
+
+                      return (
+                        <div key={i} className="glass-card job-card">
+                          <div className="job-card-header">
+                            <div>
+                              <div className="job-title">
+                                {job.title || "N/A"}
+                                <span className={`source-badge source-${sourceClass}`}>{source}</span>
+                              </div>
+                              <div className="job-company">🏢 {job.company || "N/A"} — 📍 {job.location || "N/A"}</div>
+                            </div>
+                            <div className={`score-badge ${scoreClass}`}>{score}%</div>
+                          </div>
+
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                            {(matchResult.matching_skills || []).slice(0, 5).map((s, j) => (
+                              <span key={j} className="skill-tag">✅ {s}</span>
+                            ))}
+                            {(matchResult.missing_skills || []).slice(0, 3).map((s, j) => (
+                              <span key={`m${j}`} className="skill-tag" style={{ background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.2)", color: "var(--danger)" }}>❌ {s}</span>
+                            ))}
+                          </div>
+
+                          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                              {matchResult.recommendation || job.ai_priority || ""}
+                            </span>
+                            <button className="btn btn-primary btn-sm" onClick={() => handleGenApp(job)}>
+                              ✍️ Générer Candidature
+                            </button>
+                            {job.url && job.url !== "#" && (
+                              <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
+                                🔗 Voir l'offre
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -443,7 +476,10 @@ export default function StudentDashboard() {
                 <h4 style={{ marginBottom: 12 }}>💼 Message LinkedIn</h4>
                 <p style={{ color: "var(--text-secondary)" }}>{appResult.linkedin_message}</p>
                 <button className="btn btn-secondary btn-sm" style={{ marginTop: 12 }}
-                  onClick={() => navigator.clipboard.writeText(appResult.linkedin_message)}>
+                  onClick={() => {
+                    navigator.clipboard.writeText(appResult.linkedin_message);
+                    dispatchToast("Copié dans le presse-papiers !", "success", 2000);
+                  }}>
                   📋 Copier
                 </button>
               </div>

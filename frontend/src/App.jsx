@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
@@ -10,6 +10,51 @@ const SPACE_LABELS = {
   recruiter: { icon: "🚀", label: "Espace Recruteur" },
 };
 
+// --- Toast Container Component ---
+function ToastContainer() {
+  const [toasts, setToasts] = useState([]);
+
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  useEffect(() => {
+    function handleToast(e) {
+      const toast = e.detail;
+      setToasts((prev) => [...prev.slice(-4), toast]); // keep max 5
+
+      // Auto-dismiss
+      setTimeout(() => removeToast(toast.id), toast.duration || 5000);
+    }
+
+    window.addEventListener("agentichire:toast", handleToast);
+    return () => window.removeEventListener("agentichire:toast", handleToast);
+  }, [removeToast]);
+
+  if (toasts.length === 0) return null;
+
+  return (
+    <div className="toast-container" role="alert" aria-live="polite">
+      {toasts.map((t) => (
+        <div key={t.id} className={`toast toast-${t.type || "error"}`}>
+          <span className="toast-icon">
+            {t.type === "success" ? "✅" : t.type === "warning" ? "⚠️" : "❌"}
+          </span>
+          <span className="toast-message">{t.message}</span>
+          <button
+            className="toast-close"
+            onClick={() => removeToast(t.id)}
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Main App ---
 export default function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("home");
@@ -48,7 +93,12 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage onLogin={handleLogin} />;
+    return (
+      <>
+        <ToastContainer />
+        <LoginPage onLogin={handleLogin} />
+      </>
+    );
   }
 
   const isInSpace = page !== "home";
@@ -56,6 +106,9 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {/* Global Toast Notifications */}
+      <ToastContainer />
+
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo" onClick={() => setPage("home")} style={{ cursor: "pointer" }}>

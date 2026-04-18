@@ -7,7 +7,7 @@ Refactored for AgenticHire
 All 7 Agents:
 1. CVAnalyzerAgent - Deep CV understanding
 2. JobAnalyzerAgent - Extract requirements & structure
-3. MatcherAgent - Semantic matching & scoring
+3. MatcherAgent - Semantic matching & scoring (with keyword fallback)
 4. CVOptimizerAgent - Tailor CV for specific job
 5. WriterAgent - Cover letters & messages
 6. AIScraperAgent - Smart multi-source scraping
@@ -30,18 +30,10 @@ try:
 except ImportError:
     pass
 
-# Import fix matcher
-try:
-    from .matcher_fix import patch_matcher_agent, patch_job_analyzer
-    MATCHER_FIX_AVAILABLE = True
-except ImportError:
-    MATCHER_FIX_AVAILABLE = False
-
 # Import tools
 try:
     from .tools.job_scraper import ImprovedJobScraper
 except ImportError:
-    # Fallback or local import if running standalone
     try:
         from job_scraper import ImprovedJobScraper
     except ImportError:
@@ -104,15 +96,41 @@ class JobAnalyzerAgent(BaseAgent):
     def __init__(self, api_key: Optional[str] = None, model: str = "mistral-small-latest", use_huggingface: bool = False, use_mistral: bool = True):
         super().__init__(api_key, model, use_huggingface, use_mistral)
         self.name = "Job Analyzer"
-        
-        # Apply fix if available
-        if MATCHER_FIX_AVAILABLE:
-            patch_job_analyzer(self)
 
     def analyze_job(self, job_title: str, job_description: str, company: str = "Unknown") -> Dict:
-        """Analyze job posting"""
-        # This method might be monkey-patched by MATCHER_FIX
-        system_prompt = """You are a Technical Recruiter with deep expertise in parsing job postings. You can identify true requirements vs. "wish list" items.
+        """Analyze job posting — uses simplified prompt for HuggingFace models."""
+        if self.use_huggingface:
+            return self._analyze_job_simple(job_title, job_description, company)
+        return self._analyze_job_full(job_title, job_description, company)
+
+    def _analyze_job_simple(self, job_title: str, job_description: str, company: str) -> Dict:
+        """Simplified job analysis for HuggingFace models."""
+        prompt = f"""Extract requirements from this job posting.
+        
+        Job: {job_title} at {company}
+        
+        Description:
+        {job_description[:1500]}
+        
+        Return ONLY valid JSON:
+        {{
+            "required_skills": ["list", "of", "skills"],
+            "experience_level": "Junior/Mid/Senior/Lead",
+            "role_focus": "Frontend/Backend/Fullstack/Data/AI/etc"
+        }}"""
+        
+        try:
+            response = self._call_llm(prompt)
+            result = self._parse_json_response(response)
+            if result:
+                return result
+        except Exception:
+            pass
+        return {"required_skills": [], "experience_level": "Unknown", "role_focus": "Unknown"}
+
+    def _analyze_job_full(self, job_title: str, job_description: str, company: str) -> Dict:
+        """Full job analysis for Mistral/Gemini models."""
+        system_prompt = """You are a Technical Recruiter with deep expertise in parsing job postings.
 
 Your task: Analyze this job posting and extract structured requirements.
 
@@ -120,8 +138,7 @@ Guidelines:
 - **Required vs Preferred**: Only mark skills as "required" if the posting uses words like "must have", "required", "essential". Everything else is "preferred"
 - **Experience Level**: Infer from context. "0-2yr" = Entry/Junior, "2-5yr" = Mid, "5+yr" = Senior, "Lead/Principal" = Senior+
 - **Role Focus**: Be specific (e.g., "Backend/ML" not just "Backend")
-- **Red Flags**: Identify concerning patterns (unrealistic requirements, too many hats, vague description, no salary info for senior roles)
-- If the description is very short or vague, still extract what you can and note it in red_flags
+- **Red Flags**: Identify concerning patterns
 
 Return ONLY valid JSON:
 {
@@ -137,51 +154,81 @@ Return ONLY valid JSON:
 Output raw JSON only."""
         
         prompt = f"Job: {job_title} at {company}\n\nDescription:\n{job_description[:3000]}"
-        response = self._call_llm(prompt, system_prompt)
-        return self._parse_json_response(response)
+        try:
+            response = self._call_llm(prompt, system_prompt)
+            result = self._parse_json_response(response)
+            if result:
+                return result
+        except Exception:
+            pass
+        return {"required_skills": [], "experience_level": "Unknown", "role_focus": "Unknown"}
 
-# --- 3. MATCHER AGENT ---
+# --- 3. MATCHER AGENT (with integrated keyword fallback) ---
 
 class MatcherAgent(BaseAgent):
-    """Agent 3: Match CV to jobs"""
+    """Agent 3: Match CV to jobs — LLM matching with keyword fallback"""
     
     def __init__(self, api_key: Optional[str] = None, model: str = "mistral-small-latest", use_huggingface: bool = False, use_mistral: bool = True):
         super().__init__(api_key, model, use_huggingface, use_mistral)
         self.name = "Matcher"
-        
-        # Apply fix if available
-        if MATCHER_FIX_AVAILABLE:
-            patch_matcher_agent(self)
 
     def calculate_match(self, cv_analysis: Dict, job_analysis: Dict, job_title: str) -> Dict:
-        """Calculate match score"""
-        # This method might be monkey-patched by MATCHER_FIX
-        system_prompt = """You are a Talent Matching Engine. Your job is to produce accurate, consistent match scores between a candidate and a job.
+        """Calculate match score — tries LLM first, falls back to keyword matching."""
+        try:
+            if self.use_huggingface:
+                result = self._match_llm_simple(cv_analysis, job_analysis, job_title)
+            else:
+                result = self._match_llm_full(cv_analysis, job_analysis, job_title)
+            
+            # If LLM returned empty or zero score, use keyword fallback
+            if not result or result.get('overall_match_score', 0) == 0:
+                logger.warning(f"LLM returned 0 match for '{job_title}'. Using keyword fallback.")
+                raise ValueError("Zero match or empty result")
+            
+            return result
 
-SCORING RUBRIC — Use this exact weighted formula:
+        except Exception as e:
+            logger.info(f"Using keyword fallback for '{job_title}': {e}")
+            return self._keyword_fallback(cv_analysis, job_analysis, job_title)
 
-1. **Technical Skills Match (40%)**: What % of REQUIRED skills does the candidate have?
-   - 100% match = 40 points
-   - 75% match = 30 points
-   - 50% match = 20 points
-   - <25% match = 5 points
-   - Bonus: +5 if candidate has preferred skills too
+    def _match_llm_simple(self, cv_analysis: Dict, job_analysis: Dict, job_title: str) -> Dict:
+        """Simple LLM matching for HuggingFace models."""
+        c_skills = ", ".join(cv_analysis.get('technical_skills', [])[:10])
+        j_skills = ", ".join(job_analysis.get('required_skills', [])[:10])
+        
+        prompt = f"""Act as a Recruiter. Rate the match between Candidate and Job (0-100).
+        
+        CANDIDATE:
+        Role: {cv_analysis.get('primary_role', 'Unknown')}
+        Skills: {c_skills}
+        Experience: {cv_analysis.get('experience_years', 0)} years
+        
+        JOB:
+        Title: {job_title}
+        Requirements: {j_skills}
+        Level: {job_analysis.get('experience_level', 'Unknown')}
+        
+        Return ONLY valid JSON:
+        {{
+            "overall_match_score": 75,
+            "matching_skills": ["skill1", "skill2"],
+            "missing_skills": ["skill3"],
+            "recommendation": "Good Match",
+            "priority": "Consider"
+        }}"""
+        
+        response = self._call_llm(prompt)
+        return self._parse_json_response(response)
 
-2. **Experience Level Fit (25%)**: Does candidate's seniority match the job?
-   - Exact match = 25 points
-   - One level below (e.g., Junior applying to Mid) = 15 points
-   - One level above = 20 points
-   - Two+ levels off = 5 points
+    def _match_llm_full(self, cv_analysis: Dict, job_analysis: Dict, job_title: str) -> Dict:
+        """Full LLM matching for Mistral/Gemini."""
+        system_prompt = """You are a Talent Matching Engine. Produce accurate, consistent match scores.
 
-3. **Role Alignment (20%)**: Is the candidate's primary role relevant to this job?
-   - Direct match (e.g., "ML Engineer" → "Machine Learning Engineer") = 20 points
-   - Adjacent role (e.g., "Data Scientist" → "ML Engineer") = 12 points
-   - Tangential (e.g., "Frontend Dev" → "ML Engineer") = 4 points
-
-4. **Education & Extras (15%)**: Education level, certifications, domain knowledge
-   - Strong fit = 15 points
-   - Adequate = 10 points
-   - Weak = 5 points
+SCORING RUBRIC:
+1. **Technical Skills Match (40%)**: % of REQUIRED skills the candidate has
+2. **Experience Level Fit (25%)**: Seniority alignment
+3. **Role Alignment (20%)**: Role relevance
+4. **Education & Extras (15%)**: Education, certs, domain knowledge
 
 RECOMMENDATION THRESHOLDS:
 - 80-100: "Strong Match" → priority: "Must Apply"
@@ -195,11 +242,11 @@ Return ONLY valid JSON:
     "matching_skills": ["skill1", "skill2"],
     "missing_skills": ["skill1", "skill2"],
     "recommendation": "Strong Match|Good Match|Potential|Weak Match",
-    "application_tips": ["actionable tip 1", "actionable tip 2"],
+    "application_tips": ["tip 1", "tip 2"],
     "priority": "Must Apply|Consider|Pass"
 }
 
-Be STRICT and CONSISTENT. A frontend developer with no ML skills should NOT score above 30 for an ML Engineer role."""
+Be STRICT and CONSISTENT."""
         
         prompt = f"""CANDIDATE PROFILE:
 - Primary Role: {cv_analysis.get('primary_role', 'Unknown')}
@@ -221,6 +268,69 @@ Score this match using the rubric."""
         response = self._call_llm(prompt, system_prompt)
         return self._parse_json_response(response)
 
+    def _keyword_fallback(self, cv_analysis: Dict, job_analysis: Dict, job_title: str) -> Dict:
+        """Keyword-based fallback when LLM matching fails."""
+        # Extract skill sets
+        cv_skills = set()
+        for skill in cv_analysis.get('technical_skills', []):
+            cv_skills.add(skill.lower().strip())
+        for skill in cv_analysis.get('soft_skills', []):
+            cv_skills.add(skill.lower().strip())
+        for strength in cv_analysis.get('strengths', []):
+            cv_skills.add(strength.lower().strip())
+
+        job_reqs = set()
+        for req in job_analysis.get('required_skills', []):
+            job_reqs.add(req.lower().strip())
+        for req in job_analysis.get('preferred_skills', []):
+            job_reqs.add(req.lower().strip())
+
+        if not job_reqs:
+            # No structured requirements — score based on skill count
+            match_count = len(cv_skills)
+            score = min(20 + (match_count * 10), 90)
+            matching_skills = list(cv_skills)[:5]
+            missing_skills = []
+        else:
+            matching_skills = list(cv_skills.intersection(job_reqs))
+            missing_skills = list(job_reqs.difference(cv_skills))
+            total_reqs = len(job_reqs)
+            match_count = len(matching_skills)
+
+            if total_reqs > 0:
+                base_score = (match_count / total_reqs) * 100
+            else:
+                base_score = 50
+
+            # Boost if role matches title
+            role = cv_analysis.get('primary_role', '').lower()
+            if role and role in job_title.lower():
+                base_score += 15
+
+            score = min(round(base_score), 100)
+
+        # Priority thresholds
+        if score >= 80:
+            priority, rec = "Must Apply", "Strong Match"
+        elif score >= 60:
+            priority, rec = "Strong Match", "Good Match"
+        elif score >= 40:
+            priority, rec = "Consider", "Potential Match"
+        else:
+            priority, rec = "Pass", "Low Match"
+
+        return {
+            "overall_match_score": score,
+            "matching_skills": matching_skills,
+            "missing_skills": missing_skills,
+            "recommendation": rec,
+            "application_tips": [
+                "Highlight matching skills in your CV summary",
+                "Mention your experience level in the cover letter",
+            ],
+            "priority": priority,
+        }
+
 # --- 4. CV OPTIMIZER AGENT ---
 
 class CVOptimizerAgent(BaseAgent):
@@ -238,10 +348,10 @@ Your task: Rewrite the candidate's CV to maximize their chances for the target j
 
 RULES:
 1. **Never fabricate** experience, skills, or qualifications. Only rephrase and emphasize what exists
-2. **ATS Keywords**: Mirror exact keywords from the job description (e.g., if the job says "CI/CD", use "CI/CD" not "continuous integration")
-3. **Quantify impact**: Turn vague statements into measurable results (e.g., "Improved performance" → "Improved API response time by 40%")
+2. **ATS Keywords**: Mirror exact keywords from the job description
+3. **Quantify impact**: Turn vague statements into measurable results
 4. **Relevance ordering**: Put the most job-relevant skills and experience first
-5. **Language**: Write in the same language as the original CV (if French, stay in French)
+5. **Language**: Write in the same language as the original CV
 
 OUTPUT FORMAT (Markdown):
 
@@ -280,17 +390,17 @@ class WriterAgent(BaseAgent):
 
     def write_cover_letter(self, cv_analysis: Dict, job_title: str, company: str, job_description: str) -> str:
         """Generate cover letter"""
-        system_prompt = f"""You are a Career Coach who writes compelling, personalized cover letters that get interviews.
+        system_prompt = f"""You are a Career Coach who writes compelling, personalized cover letters.
 
 GUIDELINES:
-1. **Opening hook**: Start with something specific about {company} — their product, mission, recent news, or values. NO generic "I am writing to apply for…"
-2. **Value proposition**: In 2-3 paragraphs, connect the candidate's TOP relevant experiences directly to what the job needs. Use the STAR method (Situation → Task → Action → Result)
-3. **Authenticity**: Write in first person, conversational but professional tone. Avoid buzzwords like "synergy", "leverage", "passionate"
+1. **Opening hook**: Start with something specific about {company}. NO generic "I am writing to apply for…"
+2. **Value proposition**: Connect relevant experiences to job needs using STAR method
+3. **Authenticity**: Conversational but professional. Avoid buzzwords
 4. **Closing**: Express genuine interest and suggest a next step
 5. **Length**: 250-350 words maximum
-6. **Language**: Match the language of the job description (French job → French letter). If unsure, write in English
+6. **Language**: Match the language of the job description
 
-Do NOT use placeholder brackets like [Company Name]. Use the actual values provided."""
+Do NOT use placeholder brackets. Use actual values provided."""
         
         prompt = f"""Write a cover letter for this application:
 
@@ -317,9 +427,9 @@ Write the cover letter now."""
 RULES:
 - Maximum 280 characters (LinkedIn limit)
 - Be specific: mention the exact role and one relevant skill/experience
-- Sound human, not robotic. No "Dear Sir/Madam"
-- Include a soft call to action ("Would love to chat about…")
-- Output ONLY the message text, nothing else"""
+- Sound human, not robotic
+- Include a soft call to action
+- Output ONLY the message text"""
         
         prompt = f"""Write a LinkedIn message to a recruiter at {company} about the {job_title} role.
 I am a {cv_analysis.get('primary_role', 'professional')} with {cv_analysis.get('experience_years', 0)} years of experience.
@@ -349,7 +459,6 @@ class AIScraperAgent(BaseAgent):
         jobs = self._parse_json_response(response)
         
         if isinstance(jobs, list):
-            # Enforce structure
             for j in jobs:
                 j['source'] = 'Demo (AI)'
                 j['url'] = '#'
@@ -410,7 +519,7 @@ class CoordinatorAgent(BaseAgent):
             job_data['description']
         )
         
-        # 3. Analyze CV (Original) - Assuming we have it, but for purity re-analyze
+        # 3. Analyze CV
         cv_analysis = self.cv_agent.analyze_cv(cv_text)
         
         # 4. Write Cover Letter
@@ -445,7 +554,7 @@ class CoordinatorAgent(BaseAgent):
             if progress_callback:
                 progress_callback(text, pct)
         
-        logger.info("🚀 Starting Intelligent Job Search...")
+        logger.info("Starting Intelligent Job Search...")
         update_progress("🧠 Agent 1: Analyzing CV...", 10)
         
         # 1. Analyze CV
