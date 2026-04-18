@@ -5,6 +5,7 @@ import time
 import random
 import re
 import json
+import hashlib
 from typing import List, Dict, Optional
 
 class ImprovedJobScraper:
@@ -16,9 +17,13 @@ class ImprovedJobScraper:
     4. Adzuna (Search) - aggregators
     """
     
+    # Cache TTL in seconds (5 minutes)
+    CACHE_TTL = 300
+
     def __init__(self):
         self.logger = logging.getLogger("JobScraper")
         self.name = "Improved Scraper"
+        self._cache: Dict[str, dict] = {}  # {cache_key: {"ts": float, "jobs": list}}
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -980,6 +985,30 @@ class ImprovedJobScraper:
         self.logger.info(f"Total unique jobs found: {len(unique_jobs)}")
         return unique_jobs
 
+    def _make_cache_key(self, keywords: List[str], location: Optional[str], max_jobs: int) -> str:
+        """Generate a stable cache key from search parameters."""
+        raw = f"{sorted(k.lower().strip() for k in keywords)}|{(location or '').lower().strip()}|{max_jobs}"
+        return hashlib.md5(raw.encode()).hexdigest()
+
     def scrape_all_sources(self, keywords: List[str], max_jobs: int = 20, location: Optional[str] = None) -> List[Dict]:
-        """Alias for get_matched_jobs to maintain compatibility"""
-        return self.get_matched_jobs(keywords, location, max_jobs)
+        """Main entry point with 5-minute TTL cache."""
+        cache_key = self._make_cache_key(keywords, location, max_jobs)
+
+        # Check cache
+        cached = self._cache.get(cache_key)
+        if cached and (time.time() - cached["ts"]) < self.CACHE_TTL:
+            self.logger.info(f"Cache hit for {keywords} (age {int(time.time() - cached['ts'])}s)")
+            return cached["jobs"]
+
+        # Cache miss — scrape
+        jobs = self.get_matched_jobs(keywords, location, max_jobs)
+
+        # Store in cache
+        self._cache[cache_key] = {"ts": time.time(), "jobs": jobs}
+
+        # Evict old entries (keep max 20)
+        if len(self._cache) > 20:
+            oldest_key = min(self._cache, key=lambda k: self._cache[k]["ts"])
+            del self._cache[oldest_key]
+
+        return jobs

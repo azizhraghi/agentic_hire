@@ -1,8 +1,21 @@
 /**
  * API Client — Centralized fetch wrapper for all backend calls.
+ * Includes global error handling with toast notification dispatch.
  */
 
 const API_BASE = "http://localhost:8000/api";
+
+// --- Toast Event System ---
+// Components listen for "agentichire:toast" events on window.
+export function dispatchToast(message, type = "error", duration = 5000) {
+  window.dispatchEvent(
+    new CustomEvent("agentichire:toast", {
+      detail: { message, type, duration, id: Date.now() },
+    })
+  );
+}
+
+// --- Token Management ---
 
 function getToken() {
   return localStorage.getItem("agentichire_token");
@@ -20,6 +33,8 @@ export function isAuthenticated() {
   return !!getToken();
 }
 
+// --- Core Request Wrapper ---
+
 async function request(method, path, body = null) {
   const headers = { "Content-Type": "application/json" };
   const token = getToken();
@@ -28,12 +43,38 @@ async function request(method, path, body = null) {
   const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
 
-  const res = await fetch(`${API_BASE}${path}`, opts);
-  const data = await res.json();
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, opts);
+  } catch (networkErr) {
+    // Network-level failure (offline, DNS, CORS, etc.)
+    const msg = navigator.onLine
+      ? "Le serveur ne répond pas. Vérifiez que le backend est lancé."
+      : "Pas de connexion internet.";
+    dispatchToast(msg, "error", 6000);
+    throw new Error(msg);
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    dispatchToast("Réponse invalide du serveur.", "error");
+    throw new Error("Invalid server response");
+  }
 
   if (!res.ok) {
-    throw new Error(data.detail || "API Error");
+    const detail = data.detail || `Erreur ${res.status}`;
+    // 401 = session expired → auto-logout
+    if (res.status === 401) {
+      clearToken();
+      dispatchToast("Session expirée. Veuillez vous reconnecter.", "warning");
+    } else {
+      dispatchToast(detail, "error");
+    }
+    throw new Error(detail);
   }
+
   return data;
 }
 
@@ -89,12 +130,30 @@ export async function uploadPDF(file) {
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}/upload/pdf`, {
-    method: "POST",
-    headers,
-    body: formData,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || "Upload error");
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/upload/pdf`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+  } catch {
+    dispatchToast("Erreur réseau lors de l'upload.", "error");
+    throw new Error("Upload network error");
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    dispatchToast("Réponse invalide lors de l'upload.", "error");
+    throw new Error("Invalid upload response");
+  }
+
+  if (!res.ok) {
+    const detail = data.detail || "Erreur upload";
+    dispatchToast(detail, "error");
+    throw new Error(detail);
+  }
   return data;
 }

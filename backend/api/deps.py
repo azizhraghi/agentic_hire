@@ -45,10 +45,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    # Find user in the JSON database
-    users = auth_service._load_users()
-    for u_data in users:
-        if u_data.get("id") == user_id:
-            return User(**u_data)
-
-    raise HTTPException(status_code=401, detail="User not found")
+    # Find user in SQLite database
+    user = auth_service.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user

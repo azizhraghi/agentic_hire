@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from backend.api.deps import get_current_user
+from backend.api.dependencies import get_orchestrator
 from models.user import User
 from agents.core.orchestrator import Orchestrator
 
@@ -23,17 +24,20 @@ class ChatResponse(BaseModel):
 
 
 @router.post("", response_model=ChatResponse)
-def send_message(req: ChatRequest, current_user: User = Depends(get_current_user)):
+def send_message(
+    req: ChatRequest,
+    current_user: User = Depends(get_current_user),
+    orch: Orchestrator = Depends(get_orchestrator),
+):
     """
     Send a chat message. The orchestrator detects intent and returns a response
     along with the detected workspace type.
     """
-    orch = Orchestrator()
     orch.set_user(current_user)
 
     response_text = orch.handle_request(req.message, current_user.id)
 
-    # Detect workspace from response (same logic as app.py)
+    # Detect workspace from response
     workspace = None
     lower_resp = response_text.lower()
     if "recruteur" in lower_resp:
