@@ -23,6 +23,37 @@ export default function HomePage({ user, onNavigate }) {
           <p className="home-subtitle">
             Bienvenue sur AgenticHire — votre plateforme de recrutement propulsée par 7 agents IA autonomes.
           </p>
+          
+          {/* Voice Assistant Widget */}
+          <div style={{ marginTop: 32, display: "flex", gap: 16, alignItems: "center" }}>
+            <button 
+              className="btn btn-primary" 
+              style={{ borderRadius: 50, width: 60, height: 60, padding: 0, fontSize: "1.5rem", boxShadow: "0 0 20px rgba(37, 99, 235, 0.4)" }}
+              onClick={() => {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                  alert("Votre navigateur ne supporte pas la reconnaissance vocale.");
+                  return;
+                }
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'fr-FR';
+                recognition.start();
+                recognition.onresult = (event) => {
+                  const transcript = event.results[0][0].transcript;
+                  const isRecruiter = transcript.toLowerCase().includes("cherche") || transcript.toLowerCase().includes("recrut");
+                  alert(`🗣️ Vous avez dit : "${transcript}"\n\n🤖 L'IA détecte l'intention : ${isRecruiter ? "Espace Recruteur" : "Espace Candidat"}`);
+                  onNavigate(isRecruiter ? "recruiter" : "student");
+                };
+              }}
+            >
+              🎤
+            </button>
+            <div>
+              <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>Parlez à l'IA</div>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Ex: "Je cherche un développeur React..."</div>
+            </div>
+          </div>
+
         </div>
         <div className="home-hero-badge">
           <span className="pulse-dot"></span>
@@ -104,20 +135,27 @@ export default function HomePage({ user, onNavigate }) {
         <h3 style={{ marginBottom: 16, fontSize: "1rem" }}>🌐 Sources de données intégrées</h3>
         <div className="home-sources-grid">
           {[
-            { name: "LinkedIn", color: "#0077B5" },
-            { name: "Indeed", color: "#2164f3" },
-            { name: "Glassdoor", color: "#0caa41" },
-            { name: "RemoteOK", color: "#28a745" },
-            { name: "Remotive", color: "#4d3df7" },
-            { name: "WeWorkRemotely", color: "#00c3a5" },
-            { name: "Wayup", color: "#f5a623" },
-            { name: "SimplyHired", color: "#1a8cff" },
-            { name: "Google Jobs", color: "#ea4335" },
-            { name: "Intern Insider", color: "#e91e63" },
-            { name: "Adzuna", color: "#E67E22" },
+            { name: "LinkedIn", color: "#0077B5", icon: "🔗" },
+            { name: "Indeed", color: "#2164f3", icon: "💼" },
+            { name: "Glassdoor", color: "#0caa41", icon: "🏢" },
+            { name: "RemoteOK", color: "#28a745", icon: "🌍" },
+            { name: "Remotive", color: "#4d3df7", icon: "🚀" },
+            { name: "WeWorkRemotely", color: "#00c3a5", icon: "💻" },
+            { name: "Wayup", color: "#f5a623", icon: "⬆️" },
+            { name: "SimplyHired", color: "#1a8cff", icon: "🔎" },
+            { name: "Google Jobs", color: "#ea4335", icon: "🔴" },
+            { name: "Intern Insider", color: "#e91e63", icon: "🎓" },
+            { name: "Adzuna", color: "#E67E22", icon: "📋" },
           ].map((s) => (
-            <div key={s.name} className="home-source-chip">
-              <span className="source-dot" style={{ background: s.color, opacity: 1 }}></span>
+            <div 
+              key={s.name} 
+              className="home-source-chip"
+              style={{ 
+                '--source-color': s.color,
+                '--source-shadow': `${s.color}40`
+              }}
+            >
+              <span style={{ fontSize: "1.2rem" }}>{s.icon}</span>
               {s.name}
             </div>
           ))}
