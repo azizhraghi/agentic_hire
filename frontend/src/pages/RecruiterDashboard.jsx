@@ -19,13 +19,25 @@ export default function RecruiterDashboard() {
   async function handleGenerate() {
     if (!description.trim()) return;
     setLoading(true);
-    setLoadingMsg("📝 Agents IA: Génération de la fiche de poste...");
+    let msgIndex = 0;
+    const msgs = [
+      "📝 Agent 1: Analyse du besoin de recrutement...",
+      "🔍 Agent 2: Structuration de la fiche de poste...",
+      "📢 Agent 3: Rédaction du post LinkedIn engageant..."
+    ];
+    setLoadingMsg(msgs[0]);
+    const interval = setInterval(() => {
+      msgIndex = (msgIndex + 1) % msgs.length;
+      setLoadingMsg(msgs[msgIndex]);
+    }, 1500);
+
     try {
       const data = await recruiterAPI.generateJob(description);
       setJobResult(data);
     } catch (err) {
       alert("Erreur: " + err.message);
     } finally {
+      clearInterval(interval);
       setLoading(false);
       setLoadingMsg("");
     }
@@ -99,7 +111,20 @@ export default function RecruiterDashboard() {
   async function handleScore() {
     if (!scorerJobData || candidates.length === 0) return;
     setLoading(true);
-    setLoadingMsg(`🧠 Agent IA: Scoring de ${candidates.length} candidat(s)...`);
+    
+    let msgIndex = 0;
+    const msgs = [
+      `🧠 Agent IA: Analyse des ${candidates.length} CVs...`,
+      "⚖️ Agent Matcher: Comparaison avec la fiche de poste...",
+      "📊 Agent Scorer: Attribution des notes...",
+      "📋 Agent Manager: Génération du plan d'entretien..."
+    ];
+    setLoadingMsg(msgs[0]);
+    const interval = setInterval(() => {
+      msgIndex = (msgIndex + 1) % msgs.length;
+      setLoadingMsg(msgs[msgIndex]);
+    }, 2000);
+
     try {
       const payload = candidates.map((c) => ({
         nom: c.nom,
@@ -112,6 +137,7 @@ export default function RecruiterDashboard() {
     } catch (err) {
       alert("Erreur: " + err.message);
     } finally {
+      clearInterval(interval);
       setLoading(false);
       setLoadingMsg("");
     }
@@ -321,98 +347,53 @@ export default function RecruiterDashboard() {
             </button>
           </div>
 
-          {/* Step 4: Results */}
+          {/* Step 4: Results (Kanban) */}
           {scoredResults && scoredResults.length > 0 && (
             <div>
-              <h3 style={{ marginBottom: 16, color: "var(--text-primary)" }}>🏆 Résultats du Scoring</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {scoredResults.map((c, i) => {
-                  const score = c.score || 0;
-                  const scoreClass = score >= 80 ? "score-high" : score >= 60 ? "score-medium" : "score-low";
-                  return (
-                    <div key={i} className="glass-card" style={{ padding: 24 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: "1.1rem" }}>
-                            #{i + 1} — {c.nom} {c.prenom}
-                          </div>
-                          <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 4 }}>
-                            Priorité entretien : <strong>{c.interview_priority || "N/A"}</strong>
-                          </div>
-                        </div>
-                        <div className={`score-badge ${scoreClass}`} style={{ fontSize: "1.2rem" }}>{score}%</div>
-                      </div>
+              <h3 style={{ marginBottom: 16, color: "var(--text-primary)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>🏆 Pipeline des Candidats (Kanban)</span>
+                <button className="btn btn-secondary btn-sm" onClick={() => window.print()}>🖨️ Exporter PDF</button>
+              </h3>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, alignItems: "start" }}>
+                {/* Column 1: Top Profils */}
+                <div style={{ background: "var(--bg-secondary)", padding: 16, borderRadius: "var(--radius-lg)", border: "1px solid var(--border-glass)" }}>
+                  <h4 style={{ color: "var(--success)", marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+                    <span>⭐ Top Profils</span>
+                    <span style={{ background: "var(--success-bg)", padding: "2px 8px", borderRadius: 12, fontSize: "0.8rem" }}>
+                      {scoredResults.filter(c => (c.score || 0) >= 80).length}
+                    </span>
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {scoredResults.filter(c => (c.score || 0) >= 80).map((c, i) => renderCandidateCard(c, i))}
+                  </div>
+                </div>
 
-                      <div style={{ marginBottom: 12 }}>
-                        <span style={{
-                          padding: "4px 12px", borderRadius: 20, fontSize: "0.82rem", fontWeight: 600,
-                          background: score >= 80 ? "var(--success-bg)" : score >= 60 ? "rgba(217,119,6,0.1)" : "rgba(220,38,38,0.1)",
-                          color: score >= 80 ? "var(--success)" : score >= 60 ? "var(--warning)" : "var(--danger)",
-                        }}>
-                          {c.recommendation || "N/A"}
-                        </span>
-                      </div>
+                {/* Column 2: À Considérer */}
+                <div style={{ background: "var(--bg-secondary)", padding: 16, borderRadius: "var(--radius-lg)", border: "1px solid var(--border-glass)" }}>
+                  <h4 style={{ color: "var(--warning)", marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+                    <span>🤔 À Considérer</span>
+                    <span style={{ background: "rgba(245, 158, 11, 0.1)", padding: "2px 8px", borderRadius: 12, fontSize: "0.8rem" }}>
+                      {scoredResults.filter(c => (c.score || 0) >= 60 && (c.score || 0) < 80).length}
+                    </span>
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {scoredResults.filter(c => (c.score || 0) >= 60 && (c.score || 0) < 80).map((c, i) => renderCandidateCard(c, i))}
+                  </div>
+                </div>
 
-                      <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: 12, fontStyle: "italic" }}>
-                        {c.reasoning || ""}
-                      </p>
-
-                      <div style={{ display: "flex", gap: 24 }}>
-                        {c.strengths && c.strengths.length > 0 && (
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: "0.85rem", marginBottom: 6, color: "var(--success)" }}>✅ Points forts</div>
-                            <div className="skills-grid">
-                              {c.strengths.map((s, j) => <span key={j} className="skill-tag">{s}</span>)}
-                            </div>
-                          </div>
-                        )}
-                        {c.gaps && c.gaps.length > 0 && (
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: "0.85rem", marginBottom: 6, color: "var(--danger)" }}>⚠️ Lacunes</div>
-                            <div className="skills-grid">
-                              {c.gaps.map((g, j) => (
-                                <span key={j} className="skill-tag" style={{ background: "rgba(220,38,38,0.08)", borderColor: "rgba(220,38,38,0.2)", color: "var(--danger)" }}>
-                                  {g}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {c.interview_plan && (
-                        <details style={{ marginTop: 16 }}>
-                          <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.9rem", color: "var(--accent-primary)" }}>
-                            📋 Plan d'entretien ({c.interview_plan.recommended_duration || "45min"})
-                          </summary>
-                          <div style={{ marginTop: 12, padding: 16, background: "var(--bg-secondary)", borderRadius: "var(--radius-sm)" }}>
-                            {c.interview_plan.technical_questions && (
-                              <div style={{ marginBottom: 12 }}>
-                                <strong style={{ fontSize: "0.85rem" }}>🔧 Questions techniques</strong>
-                                <ul style={{ color: "var(--text-secondary)", fontSize: "0.85rem", paddingLeft: 20, marginTop: 4 }}>
-                                  {c.interview_plan.technical_questions.map((q, j) => <li key={j}>{q}</li>)}
-                                </ul>
-                              </div>
-                            )}
-                            {c.interview_plan.behavioral_questions && (
-                              <div style={{ marginBottom: 12 }}>
-                                <strong style={{ fontSize: "0.85rem" }}>💡 Questions comportementales</strong>
-                                <ul style={{ color: "var(--text-secondary)", fontSize: "0.85rem", paddingLeft: 20, marginTop: 4 }}>
-                                  {c.interview_plan.behavioral_questions.map((q, j) => <li key={j}>{q}</li>)}
-                                </ul>
-                              </div>
-                            )}
-                            {c.interview_plan.interview_tips && (
-                              <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", fontStyle: "italic", marginTop: 8 }}>
-                                💬 {c.interview_plan.interview_tips}
-                              </p>
-                            )}
-                          </div>
-                        </details>
-                      )}
-                    </div>
-                  );
-                })}
+                {/* Column 3: Rejetés */}
+                <div style={{ background: "var(--bg-secondary)", padding: 16, borderRadius: "var(--radius-lg)", border: "1px solid var(--border-glass)" }}>
+                  <h4 style={{ color: "var(--danger)", marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+                    <span>❌ À Rejeter</span>
+                    <span style={{ background: "rgba(239, 68, 68, 0.1)", padding: "2px 8px", borderRadius: 12, fontSize: "0.8rem" }}>
+                      {scoredResults.filter(c => (c.score || 0) < 60).length}
+                    </span>
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {scoredResults.filter(c => (c.score || 0) < 60).map((c, i) => renderCandidateCard(c, i))}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -479,6 +460,36 @@ function renderJobData(jd) {
           <strong>Description :</strong>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: 4 }}>{jd.description}</p>
         </div>
+      )}
+    </div>
+  );
+}
+
+function renderCandidateCard(c, i) {
+  const score = c.score || 0;
+  const scoreClass = score >= 80 ? "score-high" : score >= 60 ? "score-medium" : "score-low";
+  return (
+    <div key={i} className="glass-card" style={{ padding: 16, cursor: "grab", borderLeft: `4px solid ${score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--warning)' : 'var(--danger)'}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-primary)" }}>{c.nom} {c.prenom}</div>
+        <div className={`score-badge ${scoreClass}`} style={{ fontSize: "0.9rem", padding: "4px 8px" }}>{score}%</div>
+      </div>
+      
+      <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginBottom: 8, fontStyle: "italic", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+        {c.reasoning || ""}
+      </p>
+
+      {c.strengths && c.strengths.length > 0 && (
+        <div className="skills-grid" style={{ marginTop: 4, marginBottom: 8 }}>
+          {c.strengths.slice(0, 2).map((s, j) => <span key={j} className="skill-tag" style={{ fontSize: "0.7rem", padding: "2px 8px" }}>{s}</span>)}
+          {c.strengths.length > 2 && <span className="skill-tag" style={{ fontSize: "0.7rem", padding: "2px 8px", background: "transparent", border: "none" }}>+{c.strengths.length - 2}</span>}
+        </div>
+      )}
+
+      {c.interview_plan && (
+        <button className="btn btn-secondary btn-sm btn-full" style={{ fontSize: "0.75rem", padding: "4px" }} onClick={() => alert(`Plan d'entretien pour ${c.nom}:\n\n- ${c.interview_plan.interview_tips || "Voir console."}`)}>
+          📋 Plan d'entretien
+        </button>
       )}
     </div>
   );
