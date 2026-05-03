@@ -1,9 +1,5 @@
 import { useState, useMemo } from "react";
-import { studentAPI, uploadPDF } from "../api";
-
-function dispatchToast(type, message) {
-  window.dispatchEvent(new CustomEvent("agentichire:toast", { detail: { type, message } }));
-}
+import { studentAPI, uploadPDF, dispatchToast } from "../api";
 
 const ALL_SOURCES = [
   { id: "LinkedIn", color: "#0077B5", icon: "🔗" },
@@ -74,9 +70,9 @@ export default function StudentDashboard() {
       try {
         const data = await uploadPDF(file);
         setCvText(data.text);
-        dispatchToast("success", "CV extrait avec succès !");
-      } catch (err) {
-        dispatchToast("error", "Erreur lors de l'extraction: " + err.message);
+        dispatchToast("PDF chargé avec succès !", "success", 3000);
+      } catch {
+        // Error already dispatched as toast via api.js
       } finally {
         setLoading(false);
         setLoadingMsg("");
@@ -90,27 +86,15 @@ export default function StudentDashboard() {
   async function handleAnalyze() {
     if (!cvText.trim()) return;
     setLoading(true);
-    let msgIndex = 0;
-    const msgs = [
-      "🧠 Agent 1: Lecture et structuration du CV...",
-      "🔬 Agent 2: Extraction des compétences clés...",
-      "📈 Agent Matcher: Définition du profil candidat..."
-    ];
-    setLoadingMsg(msgs[0]);
-    const interval = setInterval(() => {
-      msgIndex = (msgIndex + 1) % msgs.length;
-      setLoadingMsg(msgs[msgIndex]);
-    }, 1500);
-
+    setLoadingMsg("🧠 Agent 1: Analyse du CV...");
     try {
       const data = await studentAPI.analyzeCV(cvText);
       setCvAnalysis(data.analysis);
+      dispatchToast("Analyse CV terminée !", "success", 3000);
       setActiveTab("search");
-      dispatchToast("success", "CV analysé avec succès !");
-    } catch (err) {
-      dispatchToast("error", "Erreur d'analyse: " + err.message);
+    } catch {
+      // Error already dispatched as toast
     } finally {
-      clearInterval(interval);
       setLoading(false);
       setLoadingMsg("");
     }
@@ -120,20 +104,7 @@ export default function StudentDashboard() {
     if (!cvText.trim() || selectedSources.length === 0) return;
     setLoading(true);
     const srcCount = selectedSources.length;
-    
-    let msgIndex = 0;
-    const msgs = [
-      `🔬 Agent Scraper: Lancement sur ${srcCount} sources...`,
-      "🕛 Agent Scraper: Collecte des annonces...",
-      "🧠 Agent Matcher: Évaluation des offres...",
-      "📊 Agent Matcher: Calcul du score d'adéquation..."
-    ];
-    setLoadingMsg(msgs[0]);
-    const interval = setInterval(() => {
-      msgIndex = (msgIndex + 1) % msgs.length;
-      setLoadingMsg(msgs[msgIndex]);
-    }, 2000);
-
+    setLoadingMsg(`🔍 Agents IA: Scraping ${srcCount} plateforme${srcCount > 1 ? "s" : ""} (${jobsPerSource} jobs/source)...`);
     try {
       const data = await studentAPI.searchJobs(cvText, cvAnalysis, {
         ...searchOpts,
@@ -143,11 +114,10 @@ export default function StudentDashboard() {
       setJobs(data.jobs || []);
       setActiveSource("all");
       setActiveTab("results");
-      dispatchToast("success", `${(data.jobs || []).length} offres trouvées !`);
-    } catch (err) {
-      dispatchToast("error", "Erreur de recherche: " + err.message);
+      dispatchToast(`${data.total || 0} offres trouvées !`, "success", 3000);
+    } catch {
+      // Error already dispatched as toast
     } finally {
-      clearInterval(interval);
       setLoading(false);
       setLoadingMsg("");
     }
@@ -161,9 +131,9 @@ export default function StudentDashboard() {
       const data = await studentAPI.generateApplication(cvText, job);
       setAppResult(data);
       setActiveTab("application");
-      dispatchToast("success", "Dossier de candidature généré !");
-    } catch (err) {
-      dispatchToast("error", "Erreur de génération: " + err.message);
+      dispatchToast("Dossier de candidature généré !", "success", 3000);
+    } catch {
+      // Error already dispatched as toast
     } finally {
       setLoading(false);
       setLoadingMsg("");
@@ -196,7 +166,7 @@ export default function StudentDashboard() {
         <>
           <div className="tabs" style={{ background: "var(--bg-card)", padding: "0 16px", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-sm)", marginBottom: 24 }}>
             <button className={`tab ${activeTab === "upload" ? "active" : ""}`} onClick={() => setActiveTab("upload")}>📄 Upload CV</button>
-            <button className={`tab ${activeTab === "search" ? "active" : ""}`} onClick={() => setActiveTab("search")} disabled={!cvAnalysis}>🔬 Recherche</button>
+            <button className={`tab ${activeTab === "search" ? "active" : ""}`} onClick={() => setActiveTab("search")} disabled={!cvAnalysis}>🔍 Recherche</button>
             <button className={`tab ${activeTab === "results" ? "active" : ""}`} onClick={() => setActiveTab("results")} disabled={!jobs}>🎯 Résultats</button>
             {appResult && <button className={`tab ${activeTab === "application" ? "active" : ""}`} onClick={() => setActiveTab("application")}>✍️ Candidature</button>}
           </div>
@@ -278,7 +248,7 @@ export default function StudentDashboard() {
               {/* Source Selector */}
               <div style={{ marginBottom: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <h4 style={{ fontSize: "1rem" }}>🔬 Sources de recherche</h4>
+                  <h4 style={{ fontSize: "1rem" }}>🔍 Sources de recherche</h4>
                   <button className="btn btn-secondary btn-sm" onClick={toggleAll} style={{ fontSize: "0.8rem" }}>
                     {selectedSources.length === ALL_SOURCES.length ? "Tout décocher" : "Tout cocher"}
                   </button>
@@ -298,8 +268,8 @@ export default function StudentDashboard() {
                           onChange={() => toggleSource(src.id)}
                           style={{ display: "none" }}
                         />
-                        <span style={{ fontSize: "1.1rem" }}>{src.icon}</span>
-                        <span className="source-name" style={{ fontWeight: isActive ? 700 : 500 }}>{src.id}</span>
+                        <span className="source-dot" style={{ background: src.color }}></span>
+                        <span className="source-name">{src.id}</span>
                       </label>
                     );
                   })}
@@ -362,14 +332,32 @@ export default function StudentDashboard() {
           {/* RESULTS TAB */}
           {activeTab === "results" && (
             <div>
-              {!jobs || jobs.length === 0 ? (
+              {!jobs ? (
+                /* Empty state — user clicked Results before search finished */
                 <div className="glass-card" style={{ padding: 48, textAlign: "center" }}>
-                  <p style={{ fontSize: "2rem", marginBottom: 12 }}>🔍</p>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "1.05rem" }}>
-                    Aucun résultat. Lancez une recherche pour voir les offres correspondantes.
+                  <div style={{ fontSize: "3rem", marginBottom: 16 }}>🔍</div>
+                  <h3 style={{ marginBottom: 8, color: "var(--text-primary)" }}>Aucun résultat pour le moment</h3>
+                  <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
+                    Lancez d'abord une recherche depuis l'onglet « Recherche » pour voir les offres ici.
                   </p>
+                  <button className="btn btn-primary" onClick={() => setActiveTab("search")} disabled={!cvAnalysis}>
+                    🔍 Aller à la recherche
+                  </button>
+                </div>
+              ) : jobs.length === 0 ? (
+                /* Search ran but returned 0 results */
+                <div className="glass-card" style={{ padding: 48, textAlign: "center" }}>
+                  <div style={{ fontSize: "3rem", marginBottom: 16 }}>📭</div>
+                  <h3 style={{ marginBottom: 8, color: "var(--text-primary)" }}>Aucune offre trouvée</h3>
+                  <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
+                    Essayez d'activer plus de sources ou de modifier vos critères de recherche.
+                  </p>
+                  <button className="btn btn-primary" onClick={() => setActiveTab("search")}>
+                    🔧 Modifier la recherche
+                  </button>
                 </div>
               ) : (
+                /* Normal results display */
                 <>
                   <div className="metrics-grid">
                     <div className="glass-card metric-card">
@@ -488,7 +476,10 @@ export default function StudentDashboard() {
                 <h4 style={{ marginBottom: 12 }}>💼 Message LinkedIn</h4>
                 <p style={{ color: "var(--text-secondary)" }}>{appResult.linkedin_message}</p>
                 <button className="btn btn-secondary btn-sm" style={{ marginTop: 12 }}
-                  onClick={() => { navigator.clipboard.writeText(appResult.linkedin_message); dispatchToast("success", "Message copié !"); }}>
+                  onClick={() => {
+                    navigator.clipboard.writeText(appResult.linkedin_message);
+                    dispatchToast("Copié dans le presse-papiers !", "success", 2000);
+                  }}>
                   📋 Copier
                 </button>
               </div>

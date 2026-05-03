@@ -10,49 +10,55 @@ const SPACE_LABELS = {
   recruiter: { icon: "🚀", label: "Espace Recruteur" },
 };
 
-/* ─── Toast Container (global error / success notifications) ─── */
+// --- Toast Container Component ---
 function ToastContainer() {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((e) => {
-    const { type, message } = e.detail;
-    const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, type, message }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   useEffect(() => {
-    window.addEventListener("agentichire:toast", addToast);
-    return () => window.removeEventListener("agentichire:toast", addToast);
-  }, [addToast]);
+    function handleToast(e) {
+      const toast = e.detail;
+      setToasts((prev) => [...prev.slice(-4), toast]); // keep max 5
 
-  if (!toasts.length) return null;
+      // Auto-dismiss
+      setTimeout(() => removeToast(toast.id), toast.duration || 5000);
+    }
 
-  const icons = { error: "❌", warning: "⚠️", success: "✅" };
+    window.addEventListener("agentichire:toast", handleToast);
+    return () => window.removeEventListener("agentichire:toast", handleToast);
+  }, [removeToast]);
+
+  if (toasts.length === 0) return null;
 
   return (
-    <div className="toast-container">
+    <div className="toast-container" role="alert" aria-live="polite">
       {toasts.map((t) => (
-        <div key={t.id} className={`toast toast-${t.type}`}>
-          <span className="toast-icon">{icons[t.type] || "ℹ️"}</span>
+        <div key={t.id} className={`toast toast-${t.type || "error"}`}>
+          <span className="toast-icon">
+            {t.type === "success" ? "✅" : t.type === "warning" ? "⚠️" : "❌"}
+          </span>
           <span className="toast-message">{t.message}</span>
-          <button className="toast-close" onClick={() => setToasts((p) => p.filter((x) => x.id !== t.id))}>×</button>
+          <button
+            className="toast-close"
+            onClick={() => removeToast(t.id)}
+            aria-label="Fermer"
+          >
+            ×
+          </button>
         </div>
       ))}
     </div>
   );
 }
 
+// --- Main App ---
 export default function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("home");
   const [checking, setChecking] = useState(true);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -100,6 +106,7 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {/* Global Toast Notifications */}
       <ToastContainer />
 
       {/* Sidebar */}
@@ -111,26 +118,33 @@ export default function App() {
         <nav className="sidebar-nav">
           {isInSpace ? (
             <>
-              <button className="sidebar-link back-link" onClick={() => setPage("home")}>
+              {/* Back to Home */}
+              <button
+                className="sidebar-link back-link"
+                onClick={() => setPage("home")}
+              >
                 ← Accueil
               </button>
+
+              {/* Current space indicator */}
               <div className="sidebar-space-indicator">
                 <span className="space-icon">{spaceInfo?.icon}</span>
                 <span className="space-label">{spaceInfo?.label}</span>
               </div>
             </>
           ) : (
-            <button className="sidebar-link active" onClick={() => setPage("home")}>
+            /* Home — no extra links, the home cards handle navigation */
+            <button
+              className="sidebar-link active"
+              onClick={() => setPage("home")}
+            >
               🏠 Accueil
             </button>
           )}
         </nav>
 
         <div style={{ borderTop: "1px solid var(--border-glass)", paddingTop: 16, marginTop: "auto" }}>
-          <button className="btn btn-secondary btn-sm btn-full" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} style={{ marginBottom: 12 }}>
-            {theme === 'light' ? '🌙 Mode Sombre' : '☀️ Mode Clair'}
-          </button>
-          <div style={{ fontSize: "1.05rem", color: "var(--text-muted)", marginBottom: 12, textAlign: "center", fontWeight: "600" }}>
+          <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: 8 }}>
             👤 {user.username}
           </div>
           <button className="btn btn-secondary btn-sm btn-full" onClick={handleLogout}>
@@ -141,7 +155,9 @@ export default function App() {
 
       {/* Main Content */}
       <main className="main-content">
-        {page === "home" && <HomePage user={user} onNavigate={setPage} />}
+        {page === "home" && (
+          <HomePage user={user} onNavigate={setPage} />
+        )}
         {page === "recruiter" && <RecruiterDashboard />}
         {page === "student" && <StudentDashboard />}
       </main>
