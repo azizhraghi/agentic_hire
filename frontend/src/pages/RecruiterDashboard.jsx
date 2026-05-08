@@ -117,14 +117,14 @@ export default function RecruiterDashboard() {
     }
   }
 
-  function useJobFromResult() {
+  function selectJobFromResult() {
     if (jobResult?.job_data) {
       setScorerJobData(jobResult.job_data);
       setActiveTab("scorer");
     }
   }
 
-  function useJobFromOffer(offer) {
+  function selectJobFromOffer(offer) {
     if (offer?.data) {
       setScorerJobData(offer.data);
       setActiveTab("scorer");
@@ -180,7 +180,7 @@ export default function RecruiterDashboard() {
                 <h3 style={{ marginBottom: 16 }}>📄 Fiche de Poste Générée</h3>
                 {renderJobData(jobResult.job_data)}
                 <div style={{ marginTop: 16 }}>
-                  <button className="btn btn-secondary btn-sm" onClick={useJobFromResult}>
+                  <button className="btn btn-secondary btn-sm" onClick={selectJobFromResult}>
                     📊 Scorer des candidats pour ce poste →
                   </button>
                 </div>
@@ -231,7 +231,7 @@ export default function RecruiterDashboard() {
                       <button
                         key={i}
                         className="glass-card"
-                        onClick={() => useJobFromOffer(o)}
+                        onClick={() => selectJobFromOffer(o)}
                         style={{
                           padding: "12px 16px", textAlign: "left", cursor: "pointer", border: "1px solid var(--border-glass)",
                           display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -440,7 +440,7 @@ export default function RecruiterDashboard() {
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => useJobFromOffer(o)}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => selectJobFromOffer(o)}>
                         📊 Scorer
                       </button>
                       <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{o.date}</span>

@@ -1,10 +1,9 @@
 from utils.logger import AgenticLogger
-from utils.deepseek_client import DeepSeekClient
 import random
 from datetime import datetime
 
 class AgentLinkedInPost:
-    """Agent responsable de la publication sur LinkedIn avec génération IA avancée"""
+    """Legacy helper that generates LinkedIn posts from contextual templates."""
     
     # ─────────────────────────────────────────────────────────────────
     # BANQUES DE DONNÉES POUR TEMPLATES CONTEXTUELS
@@ -87,17 +86,10 @@ class AgentLinkedInPost:
 
     def __init__(self):
         self.logger = AgenticLogger("AgentLinkedInPost")
-        try:
-            self.ai_client = DeepSeekClient()
-            self.logger.info("Client DeepSeek initialisé avec succès")
-        except Exception as e:
-            self.logger.warning(f"Impossible d'initialiser DeepSeek: {e}. Mode templates avancés activé")
-            self.ai_client = None
 
     def poster_offre(self, details: dict, form_url: str = None):
         job_title = details.get('job_title', 'Poste inconnu')
         skills_list = details.get('skills_required', [])
-        skills = ", ".join(skills_list) if skills_list else ""
         location = details.get('location', 'Non spécifié')
         company = details.get('company_name', 'Non spécifié')
         salary = details.get('salary', 'Non spécifié')
@@ -109,26 +101,11 @@ class AgentLinkedInPost:
         
         post_content = ""
         form_url = form_url or "[Lien dans le premier commentaire]"
-        
-        if self.ai_client:
-            try:
-                post_content = self.ai_client.generate_linkedin_post(
-                    job_title=job_title, company=company, location=location,
-                    skills=skills or "Compétences variées", salary=salary,
-                    form_url=form_url, experience=experience, contract_type=contract_type
-                )
-                self.logger.success("Post généré avec DeepSeek")
-            except Exception as e:
-                self.logger.error(f"Erreur génération DeepSeek: {e}")
-                post_content = self._generate_smart_post(
-                    job_title, skills_list, location, company, salary,
-                    experience, contract_type, duration, form_url
-                )
-        else:
-            post_content = self._generate_smart_post(
-                job_title, skills_list, location, company, salary,
-                experience, contract_type, duration, form_url
-            )
+
+        post_content = self._generate_smart_post(
+            job_title, skills_list, location, company, salary,
+            experience, contract_type, duration, form_url
+        )
 
         # Affichage du résultat
         print("\n" + "🔵"*20 + " APERCU LINKEDIN " + "🔵"*20)

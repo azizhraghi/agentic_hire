@@ -50,11 +50,10 @@ AgenticHire/
 ├── services/
 │   └── auth_service.py         # Authentication logic
 ├── utils/
-│   ├── logger.py               # Logging setup
-│   └── deepseek_client.py      # DeepSeek API wrapper
+│   └── logger.py               # Logging setup
 ├── data/
-│   ├── users.json              # User database
-│   └── candidatures.json       # Saved applications
+│   ├── agentichire.db          # SQLite database for users and offers
+│   └── *.json                  # Legacy/local data exports
 ├── scripts/
 │   ├── push_to_github.sh
 │   └── push_to_github.bat

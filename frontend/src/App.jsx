@@ -58,18 +58,30 @@ function ToastContainer() {
 export default function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("home");
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(() => isAuthenticated());
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      authAPI
-        .me()
-        .then((u) => { setUser(u); setChecking(false); })
-        .catch(() => { clearToken(); setChecking(false); });
-    } else {
-      setChecking(false);
-    }
-  }, []);
+    if (!checking) return;
+
+    let cancelled = false;
+
+    authAPI
+      .me()
+      .then((u) => {
+        if (cancelled) return;
+        setUser(u);
+        setChecking(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearToken();
+        setChecking(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checking]);
 
   function handleLogin(userData) {
     setUser(userData);

@@ -4,13 +4,18 @@ POST /api/upload/pdf — Extract text from a PDF file
 """
 
 import io
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from backend.api.deps import get_current_user
+from models.user import User
 
 router = APIRouter(prefix="/api/upload", tags=["Upload"])
 
 
 @router.post("/pdf")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(
+    file: UploadFile = File(...),
+    _current_user: User = Depends(get_current_user),
+):
     """Upload a PDF and extract text content using PyPDF2."""
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")

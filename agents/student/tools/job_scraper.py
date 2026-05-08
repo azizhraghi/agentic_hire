@@ -931,7 +931,18 @@ class ImprovedJobScraper:
 
 
 
-    def get_matched_jobs(self, keywords: List[str], location: Optional[str] = None, max_jobs: int = 20) -> List[Dict]:
+    def _normalize_source_name(self, source: str) -> str:
+        """Normalize UI source labels for stable matching."""
+        return re.sub(r"[^a-z0-9]+", "", (source or "").lower())
+
+    def get_matched_jobs(
+        self,
+        keywords: List[str],
+        location: Optional[str] = None,
+        max_jobs: int = 20,
+        selected_sources: Optional[List[str]] = None,
+        include_remote: bool = True,
+    ) -> List[Dict]:
         """
         Master method to get jobs from all sources and combine them
         """
@@ -945,22 +956,37 @@ class ImprovedJobScraper:
         
         # Use max_jobs as the per-source limit (controlled by the UI slider)
         per_source_limit = max_jobs
-        
-        scrapers = [
-            (self.scrape_remoteok, per_source_limit, {"search_tags": keywords}),
-            (self.scrape_linkedin, per_source_limit, {"keywords": keywords, "location": location}),
-            (self.scrape_weworkremotely, per_source_limit, {"keywords": keywords}),
-            (self.scrape_indeed_simple, per_source_limit, {"keywords": keywords, "location": location}),
-            (self.scrape_glassdoor, per_source_limit, {"keywords": keywords, "location": location}),
-            (self.scrape_remotive, per_source_limit, {"keywords": keywords, "location": location}),
-            (self.scrape_wayup, per_source_limit, {"keywords": keywords, "location": location}),
-            (self.scrape_intern_insider, per_source_limit, {"keywords": keywords, "location": location}),
-            (self.scrape_simply_hired, per_source_limit, {"keywords": keywords, "location": location}),
-            (self.scrape_google_jobs_simple, per_source_limit, {"keywords": keywords, "location": location}),
-            (self.scrape_adzuna, per_source_limit, {"keywords": keywords, "location": location})
+
+        source_scrapers = [
+            ("RemoteOK", self.scrape_remoteok, per_source_limit, {"search_tags": keywords}),
+            ("LinkedIn", self.scrape_linkedin, per_source_limit, {"keywords": keywords, "location": location}),
+            ("WeWorkRemotely", self.scrape_weworkremotely, per_source_limit, {"keywords": keywords}),
+            ("Indeed", self.scrape_indeed_simple, per_source_limit, {"keywords": keywords, "location": location}),
+            ("Glassdoor", self.scrape_glassdoor, per_source_limit, {"keywords": keywords, "location": location}),
+            ("Remotive", self.scrape_remotive, per_source_limit, {"keywords": keywords, "location": location}),
+            ("Wayup", self.scrape_wayup, per_source_limit, {"keywords": keywords, "location": location}),
+            ("Intern Insider", self.scrape_intern_insider, per_source_limit, {"keywords": keywords, "location": location}),
+            ("SimplyHired", self.scrape_simply_hired, per_source_limit, {"keywords": keywords, "location": location}),
+            ("Google Jobs", self.scrape_google_jobs_simple, per_source_limit, {"keywords": keywords, "location": location}),
+            ("Adzuna", self.scrape_adzuna, per_source_limit, {"keywords": keywords, "location": location})
         ]
+
+        if not include_remote:
+            remote_only_sources = {"RemoteOK", "WeWorkRemotely", "Remotive", "Intern Insider", "Google Jobs"}
+            source_scrapers = [item for item in source_scrapers if item[0] not in remote_only_sources]
+
+        if selected_sources is not None:
+            selected_lookup = {self._normalize_source_name(source) for source in selected_sources}
+            source_scrapers = [
+                item for item in source_scrapers
+                if self._normalize_source_name(item[0]) in selected_lookup
+            ]
+
+        if not source_scrapers:
+            self.logger.warning("No job sources selected after applying filters")
+            return []
         
-        for func, limit, kwargs in scrapers:
+        for source_name, func, limit, kwargs in source_scrapers:
             try:
                 # Some functions like scrape_remoteok take search_tags, others keywords.
                 # All take max_jobs.
@@ -968,7 +994,14 @@ class ImprovedJobScraper:
                 res = func(**kwargs)
                 all_jobs.extend(res)
             except Exception as e:
-                self.logger.error(f"{func.__name__} failed: {e}")
+                self.logger.error(f"{source_name} scraper failed: {e}")
+
+        if not include_remote:
+            remote_terms = ("remote", "worldwide", "anywhere")
+            all_jobs = [
+                job for job in all_jobs
+                if not any(term in str(job.get("location", "")).lower() for term in remote_terms)
+            ]
                 
         # Deduplicate
         unique_jobs = []
@@ -985,14 +1018,31 @@ class ImprovedJobScraper:
         self.logger.info(f"Total unique jobs found: {len(unique_jobs)}")
         return unique_jobs
 
-    def _make_cache_key(self, keywords: List[str], location: Optional[str], max_jobs: int) -> str:
+    def _make_cache_key(
+        self,
+        keywords: List[str],
+        location: Optional[str],
+        max_jobs: int,
+        selected_sources: Optional[List[str]] = None,
+        include_remote: bool = True,
+    ) -> str:
         """Generate a stable cache key from search parameters."""
-        raw = f"{sorted(k.lower().strip() for k in keywords)}|{(location or '').lower().strip()}|{max_jobs}"
+        selected = "__all__" if selected_sources is None else sorted(
+            self._normalize_source_name(source) for source in selected_sources
+        )
+        raw = f"{sorted(k.lower().strip() for k in keywords)}|{(location or '').lower().strip()}|{max_jobs}|{selected}|{include_remote}"
         return hashlib.md5(raw.encode()).hexdigest()
 
-    def scrape_all_sources(self, keywords: List[str], max_jobs: int = 20, location: Optional[str] = None) -> List[Dict]:
+    def scrape_all_sources(
+        self,
+        keywords: List[str],
+        max_jobs: int = 20,
+        location: Optional[str] = None,
+        selected_sources: Optional[List[str]] = None,
+        include_remote: bool = True,
+    ) -> List[Dict]:
         """Main entry point with 5-minute TTL cache."""
-        cache_key = self._make_cache_key(keywords, location, max_jobs)
+        cache_key = self._make_cache_key(keywords, location, max_jobs, selected_sources, include_remote)
 
         # Check cache
         cached = self._cache.get(cache_key)
@@ -1001,7 +1051,13 @@ class ImprovedJobScraper:
             return cached["jobs"]
 
         # Cache miss — scrape
-        jobs = self.get_matched_jobs(keywords, location, max_jobs)
+        jobs = self.get_matched_jobs(
+            keywords,
+            location,
+            max_jobs,
+            selected_sources=selected_sources,
+            include_remote=include_remote,
+        )
 
         # Store in cache
         self._cache[cache_key] = {"ts": time.time(), "jobs": jobs}

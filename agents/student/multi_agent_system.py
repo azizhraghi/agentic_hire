@@ -576,7 +576,13 @@ class CoordinatorAgent(BaseAgent):
              update_progress("🎬 Demo Mode: Generating realistic jobs...", 40)
              raw_jobs = self.scraper.generate_profile_demo_jobs(cv_analysis)
         else:
-             raw_jobs = self.scraper.tool.scrape_all_sources(keywords, max_jobs=jobs_per_site, location=user_location)
+             raw_jobs = self.scraper.tool.scrape_all_sources(
+                 keywords,
+                 max_jobs=jobs_per_site,
+                 location=user_location,
+                 selected_sources=selected_sources,
+                 include_remote=include_remote,
+             )
 
         if not raw_jobs:
             logger.warning("No jobs found")

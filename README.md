@@ -5,7 +5,7 @@
 ![React](https://img.shields.io/badge/React-Frontend-61DAFB)
 ![AI Agents](https://img.shields.io/badge/AI-Multi--Agent-orange)
 
-**AgenticHire** est une plateforme de recrutement de nouvelle génération, propulsée par un écosystème **Multi-Agents** (DeepSeek V3, Mistral, HuggingFace). 
+**AgenticHire** est une plateforme de recrutement de nouvelle génération, propulsée par un écosystème **Multi-Agents** basé sur Mistral AI.
 
 Elle réunit **Recruteurs** et **Étudiants/Candidats** dans une interface conversationnelle unifiée ("Chat-First"), automatisant l'intégralité du pipeline de recrutement et de recherche d'emploi.
 
@@ -52,10 +52,10 @@ L'application détecte automatiquement votre rôle (via NLP) et active les agent
 |--------|-------------|
 | **Backend** | [FastAPI](https://fastapi.tiangolo.com/) (Python) |
 | **Frontend** | [React](https://react.dev/) + [Vite](https://vite.dev/) |
-| **LLM & IA** | Mistral AI, HuggingFace |
+| **LLM & IA** | Mistral AI |
 | **Orchestration** | Architecture modulaire personnalisée |
 | **Scraping** | Beautiful Soup 4, python-jobspy, Requests |
-| **Base de données** | JSON (fichiers locaux) |
+| **Base de données** | SQLite (`data/agentichire.db`) |
 
 ---
 
@@ -111,7 +111,6 @@ Créez un fichier `.env` à la racine du projet :
 MISTRAL_API_KEY=votre_cle_mistral
 
 # Optionnel
-DEEPSEEK_API_KEY=votre_cle_deepseek
 HUGGINGFACE_TOKEN=votre_token_hf
 ```
 

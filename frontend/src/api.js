@@ -46,7 +46,7 @@ async function request(method, path, body = null) {
   let res;
   try {
     res = await fetch(`${API_BASE}${path}`, opts);
-  } catch (networkErr) {
+  } catch {
     // Network-level failure (offline, DNS, CORS, etc.)
     const msg = navigator.onLine
       ? "Le serveur ne répond pas. Vérifiez que le backend est lancé."
